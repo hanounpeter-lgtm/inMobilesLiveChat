@@ -1,0 +1,68 @@
+import {
+  Body,
+  Controller,
+  HttpCode,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
+import type { Request, Response } from 'express';
+import { LoginRequest, LoginResponse } from '@inmobiles/shared-types';
+import { AuthService } from './auth.service';
+import { ZodValidationPipe } from '../../common/zod-validation.pipe';
+
+const REFRESH_COOKIE = 'refresh_token';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly auth: AuthService) {}
+
+  private setRefreshCookie(res: Response, token: string) {
+    res.cookie(REFRESH_COOKIE, token, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/api/auth',
+      maxAge: 1000 * 60 * 60 * 24 * 30,
+    });
+  }
+
+  @Post('login')
+  @HttpCode(200)
+  async login(
+    @Body(new ZodValidationPipe(LoginRequest)) body: LoginRequest,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<LoginResponse> {
+    const user = await this.auth.validateCredentials(body.email, body.password);
+    const { accessToken, refreshToken } = await this.auth.issueTokens(
+      user.id,
+      req.headers['user-agent'],
+    );
+    this.setRefreshCookie(res, refreshToken);
+    return { accessToken, user: await this.auth.getAuthUser(user.id) };
+  }
+
+  @Post('refresh')
+  @HttpCode(200)
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<LoginResponse> {
+    const presented = req.cookies?.[REFRESH_COOKIE];
+    if (!presented) throw new UnauthorizedException('No refresh token');
+    const { accessToken, refreshToken } = await this.auth.rotateRefreshToken(presented);
+    this.setRefreshCookie(res, refreshToken);
+    const payload = await this.auth.verifyAccessToken(accessToken);
+    return { accessToken, user: await this.auth.getAuthUser(payload.sub) };
+  }
+
+  @Post('logout')
+  @HttpCode(204)
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const presented = req.cookies?.[REFRESH_COOKIE];
+    if (presented) await this.auth.revokeRefreshToken(presented);
+    res.clearCookie(REFRESH_COOKIE, { path: '/api/auth' });
+  }
+}

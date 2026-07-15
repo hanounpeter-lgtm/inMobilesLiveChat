@@ -1,0 +1,286 @@
+import { z } from 'zod';
+
+// ---------- Auth ----------
+export const LoginRequest = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+export type LoginRequest = z.infer<typeof LoginRequest>;
+
+export const AuthUser = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  displayName: z.string(),
+  avatarUrl: z.string().nullable(),
+  statusText: z.string().nullable(),
+  role: z.enum(['owner', 'admin', 'member', 'guest']),
+});
+export type AuthUser = z.infer<typeof AuthUser>;
+
+export const LoginResponse = z.object({
+  accessToken: z.string(),
+  user: AuthUser,
+});
+export type LoginResponse = z.infer<typeof LoginResponse>;
+
+// ---------- Channels ----------
+export const ChannelType = z.enum(['public', 'private', 'dm', 'group_dm']);
+export type ChannelType = z.infer<typeof ChannelType>;
+
+export const PostingPolicy = z.enum(['everyone', 'admins_only']);
+export type PostingPolicy = z.infer<typeof PostingPolicy>;
+
+export const NotifyLevel = z.enum(['all', 'mentions', 'none']);
+export type NotifyLevel = z.infer<typeof NotifyLevel>;
+
+export const ChannelSummary = z.object({
+  id: z.string().uuid(),
+  type: ChannelType,
+  name: z.string().nullable(),
+  topic: z.string().nullable(),
+  description: z.string().nullable(),
+  createdById: z.string().uuid().nullable(),
+  isArchived: z.boolean(),
+  isDefault: z.boolean(),
+  postingPolicy: PostingPolicy,
+  memberCount: z.number().int(),
+  lastMessageAt: z.string().datetime().nullable(),
+  // Viewer-scoped fields — never copy these from broadcast payloads.
+  notifyLevel: NotifyLevel,
+  isStarred: z.boolean(),
+  // For DMs/group DMs: the other members, so the client can render a title.
+  memberPreviews: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        displayName: z.string(),
+        avatarUrl: z.string().nullable(),
+      }),
+    )
+    .optional(),
+});
+export type ChannelSummary = z.infer<typeof ChannelSummary>;
+
+const channelName = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z0-9][a-z0-9-_]*$/i, 'letters, numbers, dashes, underscores');
+
+export const CreateChannelRequest = z.object({
+  name: channelName,
+  type: z.enum(['public', 'private']),
+  topic: z.string().max(250).optional(),
+  description: z.string().max(500).optional(),
+  memberIds: z.array(z.string().uuid()).max(100).optional(),
+});
+export type CreateChannelRequest = z.infer<typeof CreateChannelRequest>;
+
+export const UpdateChannelRequest = z
+  .object({
+    name: channelName.optional(),
+    topic: z.string().max(250).nullable().optional(),
+    description: z.string().max(500).nullable().optional(),
+    type: z.enum(['public', 'private']).optional(),
+    postingPolicy: PostingPolicy.optional(),
+    isArchived: z.boolean().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'Nothing to update');
+export type UpdateChannelRequest = z.infer<typeof UpdateChannelRequest>;
+
+export const AddChannelMembersRequest = z.object({
+  userIds: z.array(z.string().uuid()).min(1).max(100),
+});
+export type AddChannelMembersRequest = z.infer<typeof AddChannelMembersRequest>;
+
+export const MyChannelSettingsRequest = z
+  .object({
+    notifyLevel: NotifyLevel.optional(),
+    isStarred: z.boolean().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'Nothing to update');
+export type MyChannelSettingsRequest = z.infer<typeof MyChannelSettingsRequest>;
+
+export const ChannelMemberDto = z.object({
+  id: z.string().uuid(),
+  displayName: z.string(),
+  avatarUrl: z.string().nullable(),
+  workspaceRole: z.enum(['owner', 'admin', 'member', 'guest']),
+  joinedAt: z.string().datetime(),
+});
+export type ChannelMemberDto = z.infer<typeof ChannelMemberDto>;
+
+export const ChannelUpdatedPayload = z.object({ channel: ChannelSummary });
+export type ChannelUpdatedPayload = z.infer<typeof ChannelUpdatedPayload>;
+
+export const ChannelMembersJoinedPayload = z.object({
+  channelId: z.string().uuid(),
+  users: z.array(ChannelMemberDto),
+});
+export type ChannelMembersJoinedPayload = z.infer<typeof ChannelMembersJoinedPayload>;
+
+export const ChannelMemberLeftPayload = z.object({
+  channelId: z.string().uuid(),
+  userId: z.string().uuid(),
+});
+export type ChannelMemberLeftPayload = z.infer<typeof ChannelMemberLeftPayload>;
+
+export const ChannelRemovedPayload = z.object({ channelId: z.string().uuid() });
+export type ChannelRemovedPayload = z.infer<typeof ChannelRemovedPayload>;
+
+export const CreateDmRequest = z.object({
+  memberIds: z.array(z.string().uuid()).min(1).max(8),
+});
+export type CreateDmRequest = z.infer<typeof CreateDmRequest>;
+
+// ---------- Messages ----------
+export const MessageAuthor = z.object({
+  id: z.string().uuid(),
+  displayName: z.string(),
+  avatarUrl: z.string().nullable(),
+});
+export type MessageAuthor = z.infer<typeof MessageAuthor>;
+
+export const MessageDto = z.object({
+  id: z.string().uuid(),
+  channelId: z.string().uuid(),
+  parentMessageId: z.string().uuid().nullable(),
+  content: z.string(),
+  clientMsgId: z.string().uuid(),
+  author: MessageAuthor,
+  replyCount: z.number().int(),
+  isEdited: z.boolean(),
+  isDeleted: z.boolean(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type MessageDto = z.infer<typeof MessageDto>;
+
+export const SendMessageRequest = z.object({
+  content: z.string().min(1).max(12000),
+  clientMsgId: z.string().uuid(),
+  parentMessageId: z.string().uuid().optional(),
+});
+export type SendMessageRequest = z.infer<typeof SendMessageRequest>;
+
+export const EditMessageRequest = z.object({
+  content: z.string().min(1).max(12000),
+});
+export type EditMessageRequest = z.infer<typeof EditMessageRequest>;
+
+export const MessagePage = z.object({
+  messages: z.array(MessageDto),
+  // Opaque cursor for the next (older) page; null when exhausted.
+  nextCursor: z.string().nullable(),
+});
+export type MessagePage = z.infer<typeof MessagePage>;
+
+// ---------- Socket payloads ----------
+export const MessageNewPayload = z.object({
+  message: MessageDto,
+});
+export type MessageNewPayload = z.infer<typeof MessageNewPayload>;
+
+export const MessageDeletedPayload = z.object({
+  messageId: z.string().uuid(),
+  channelId: z.string().uuid(),
+});
+export type MessageDeletedPayload = z.infer<typeof MessageDeletedPayload>;
+
+export const TypingUpdatePayload = z.object({
+  channelId: z.string().uuid(),
+  users: z.array(z.object({ id: z.string().uuid(), displayName: z.string() })),
+});
+export type TypingUpdatePayload = z.infer<typeof TypingUpdatePayload>;
+
+export const PresenceUpdatePayload = z.object({
+  userId: z.string().uuid(),
+  status: z.enum(['online', 'away', 'offline']),
+});
+export type PresenceUpdatePayload = z.infer<typeof PresenceUpdatePayload>;
+
+// ---------- Channel invites ----------
+export const InviteLinkResponse = z.object({
+  token: z.string(),
+  expiresAt: z.string().datetime(),
+});
+export type InviteLinkResponse = z.infer<typeof InviteLinkResponse>;
+
+export const InvitePreview = z.object({
+  channelId: z.string().uuid(),
+  name: z.string().nullable(),
+  type: ChannelType,
+  topic: z.string().nullable(),
+  memberCount: z.number().int(),
+  invitedBy: z.string(),
+  alreadyMember: z.boolean(),
+});
+export type InvitePreview = z.infer<typeof InvitePreview>;
+
+// ---------- GIFs ----------
+export const GifDto = z.object({
+  id: z.string(),
+  url: z.string(),
+  preview: z.string(),
+  width: z.number(),
+  height: z.number(),
+});
+export type GifDto = z.infer<typeof GifDto>;
+
+// ---------- Files ----------
+export const FileUrlResponse = z.object({
+  url: z.string(),
+});
+export type FileUrlResponse = z.infer<typeof FileUrlResponse>;
+
+// ---------- Calls ----------
+export const CallDto = z.object({
+  id: z.string().uuid(),
+  channelId: z.string().uuid(),
+  type: z.enum(['audio', 'video']),
+  startedBy: z.object({ id: z.string().uuid(), displayName: z.string() }),
+  startedAt: z.string().datetime(),
+  isRecording: z.boolean(),
+});
+
+export const CallRecordingPayload = z.object({
+  callId: z.string().uuid(),
+  channelId: z.string().uuid(),
+  isRecording: z.boolean(),
+  by: z.string(),
+});
+export type CallRecordingPayload = z.infer<typeof CallRecordingPayload>;
+export type CallDto = z.infer<typeof CallDto>;
+
+export const StartCallRequest = z.object({
+  type: z.enum(['audio', 'video']),
+});
+export type StartCallRequest = z.infer<typeof StartCallRequest>;
+
+export const JoinCallResponse = z.object({
+  call: CallDto,
+  token: z.string(),
+  serverUrl: z.string(),
+});
+export type JoinCallResponse = z.infer<typeof JoinCallResponse>;
+
+export const CallStartedPayload = z.object({
+  call: CallDto,
+});
+export type CallStartedPayload = z.infer<typeof CallStartedPayload>;
+
+export const CallEndedPayload = z.object({
+  callId: z.string().uuid(),
+  channelId: z.string().uuid(),
+});
+export type CallEndedPayload = z.infer<typeof CallEndedPayload>;
+
+export const RoomJoinPayload = z.object({
+  channelId: z.string().uuid(),
+});
+export type RoomJoinPayload = z.infer<typeof RoomJoinPayload>;
+
+export const TypingPayload = z.object({
+  channelId: z.string().uuid(),
+});
+export type TypingPayload = z.infer<typeof TypingPayload>;

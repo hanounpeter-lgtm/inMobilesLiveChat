@@ -1,0 +1,290 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WorkspaceRole {
+  owner
+  admin
+  member
+  guest
+}
+
+enum ChannelType {
+  public
+  private
+  dm
+  group_dm
+}
+
+enum NotifyLevel {
+  all
+  mentions
+  none
+}
+
+enum NotificationType {
+  mention
+  dm
+  thread_reply
+  channel_invite
+}
+
+enum AttachmentStatus {
+  pending
+  ready
+}
+
+enum CallType {
+  audio
+  video
+}
+
+enum PostingPolicy {
+  everyone
+  admins_only
+}
+
+model User {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  email        String    @unique
+  passwordHash String?   @map("password_hash")
+  displayName  String    @map("display_name")
+  avatarUrl    String?   @map("avatar_url")
+  statusText   String?   @map("status_text")
+  statusEmoji  String?   @map("status_emoji")
+  timezone     String?
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()
+
+  workspaceMemberships WorkspaceMember[]
+  channelMemberships   ChannelMember[]
+  messages             Message[]
+  reactions            Reaction[]
+  refreshTokens        RefreshToken[]
+  notifications        Notification[]    @relation("NotificationRecipient")
+  actedNotifications   Notification[]    @relation("NotificationActor")
+  attachments          Attachment[]
+  pushSubscriptions    PushSubscription[]
+  startedCalls         Call[]
+  channelInvites       ChannelInvite[]
+
+  @@map("users")
+}
+
+model Workspace {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String
+  slug      String   @unique
+  iconUrl   String?  @map("icon_url")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  members  WorkspaceMember[]
+  channels Channel[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  workspaceId String        @map("workspace_id") @db.Uuid
+  userId      String        @map("user_id") @db.Uuid
+  role        WorkspaceRole @default(member)
+  joinedAt    DateTime      @default(now()) @map("joined_at") @db.Timestamptz()
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, userId])
+  @@index([userId])
+  @@map("workspace_members")
+}
+
+model Channel {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  workspaceId   String      @map("workspace_id") @db.Uuid
+  type          ChannelType
+  name          String?
+  topic         String?
+  description   String?
+  createdById   String?     @map("created_by") @db.Uuid
+  dmKey         String?     @unique @map("dm_key")
+  isArchived    Boolean     @default(false) @map("is_archived")
+  isDefault     Boolean     @default(false) @map("is_default")
+  postingPolicy PostingPolicy @default(everyone) @map("posting_policy")
+  lastMessageAt DateTime?   @map("last_message_at") @db.Timestamptz()
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz()
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  members   ChannelMember[]
+  messages  Message[]
+  calls     Call[]
+  invites   ChannelInvite[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, type])
+  @@map("channels")
+}
+
+model ChannelMember {
+  channelId         String      @map("channel_id") @db.Uuid
+  userId            String      @map("user_id") @db.Uuid
+  lastReadMessageId String?     @map("last_read_message_id") @db.Uuid
+  lastReadAt        DateTime?   @map("last_read_at") @db.Timestamptz()
+  notifyLevel       NotifyLevel @default(all) @map("notify_level")
+  isStarred         Boolean     @default(false) @map("is_starred")
+  joinedAt          DateTime    @default(now()) @map("joined_at") @db.Timestamptz()
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([channelId, userId])
+  @@index([userId])
+  @@map("channel_members")
+}
+
+model Message {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  channelId       String    @map("channel_id") @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  parentMessageId String?   @map("parent_message_id") @db.Uuid
+  content         String
+  clientMsgId     String    @map("client_msg_id") @db.Uuid
+  replyCount      Int       @default(0) @map("reply_count")
+  lastReplyAt     DateTime? @map("last_reply_at") @db.Timestamptz()
+  isEdited        Boolean   @default(false) @map("is_edited")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+
+  channel       Channel      @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  author        User         @relation(fields: [userId], references: [id])
+  parentMessage Message?     @relation("Thread", fields: [parentMessageId], references: [id])
+  replies       Message[]    @relation("Thread")
+  reactions     Reaction[]
+  attachments   Attachment[]
+
+  @@unique([channelId, clientMsgId])
+  @@index([channelId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([parentMessageId, createdAt])
+  @@map("messages")
+}
+
+model Reaction {
+  messageId String   @map("message_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  emoji     String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId, emoji])
+  @@map("reactions")
+}
+
+model Attachment {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  messageId   String?          @map("message_id") @db.Uuid
+  uploaderId  String           @map("uploader_id") @db.Uuid
+  workspaceId String           @map("workspace_id") @db.Uuid
+  s3Key       String           @map("s3_key")
+  filename    String
+  mimeType    String           @map("mime_type")
+  sizeBytes   BigInt           @map("size_bytes")
+  width       Int?
+  height      Int?
+  thumbS3Key  String?          @map("thumb_s3_key")
+  status      AttachmentStatus @default(pending)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+
+  message  Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  uploader User     @relation(fields: [uploaderId], references: [id])
+
+  @@index([messageId])
+  @@map("attachments")
+}
+
+model Notification {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  userId      String           @map("user_id") @db.Uuid
+  workspaceId String           @map("workspace_id") @db.Uuid
+  type        NotificationType
+  messageId   String?          @map("message_id") @db.Uuid
+  channelId   String?          @map("channel_id") @db.Uuid
+  actorId     String?          @map("actor_id") @db.Uuid
+  readAt      DateTime?        @map("read_at") @db.Timestamptz()
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+
+  user  User  @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("NotificationActor", fields: [actorId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash")
+  familyId   String    @map("family_id") @db.Uuid
+  deviceInfo String?   @map("device_info")
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz()
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz()
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+model Call {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  channelId   String    @map("channel_id") @db.Uuid
+  startedById String    @map("started_by") @db.Uuid
+  livekitRoom String    @unique @map("livekit_room")
+  type        CallType
+  isRecording Boolean   @default(false) @map("is_recording")
+  startedAt   DateTime  @default(now()) @map("started_at") @db.Timestamptz()
+  endedAt     DateTime? @map("ended_at") @db.Timestamptz()
+
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  startedBy User    @relation(fields: [startedById], references: [id])
+
+  @@index([channelId, endedAt])
+  @@map("calls")
+}
+
+model ChannelInvite {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  channelId   String    @map("channel_id") @db.Uuid
+  token       String    @unique
+  createdById String    @map("created_by") @db.Uuid
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz()
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz()
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([channelId])
+  @@map("channel_invites")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String   @unique
+  keys      Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_subscriptions")
+}

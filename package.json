@@ -1,0 +1,19 @@
+{
+  "name": "inmobiles-livechat",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "db:migrate": "pnpm --filter @inmobiles/api db:migrate",
+    "db:seed": "pnpm --filter @inmobiles/api db:seed",
+    "stickers": "node scripts/download-stickers.cjs",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.4"
+  }
+}
