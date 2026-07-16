@@ -95,6 +95,9 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
   const stickToBottom = useRef(true);
   const [contextMenu, setContextMenu] = useState<MenuState | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const dragDepth = useRef(0);
+  const setComposerFiles = useChatStore((s) => s.setComposerFiles);
 
   const query = useInfiniteQuery({
     queryKey: messagesKey(channel.id),
@@ -171,7 +174,32 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
   };
 
   return (
-    <main className="message-pane">
+    <main
+      className="message-pane"
+      onDragEnter={(e) => {
+        if (e.dataTransfer.types.includes('Files')) {
+          dragDepth.current += 1;
+          setDragging(true);
+        }
+      }}
+      onDragLeave={() => {
+        dragDepth.current = Math.max(0, dragDepth.current - 1);
+        if (dragDepth.current === 0) setDragging(false);
+      }}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault();
+        dragDepth.current = 0;
+        setDragging(false);
+        const files = [...e.dataTransfer.files];
+        if (files.length > 0 && canPost) setComposerFiles(files);
+      }}
+    >
+      {dragging && canPost && (
+        <div className="drop-overlay">
+          <span>Drop files to upload to {channelTitle(channel)}</span>
+        </div>
+      )}
       <header className="channel-header">
         <h2>{channelTitle(channel)}</h2>
         {channel.topic && <span className="muted topic">{channel.topic}</span>}

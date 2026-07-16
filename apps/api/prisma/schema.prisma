@@ -212,6 +212,7 @@ model Reaction {
 model Attachment {
   id          String           @id @default(uuid(7)) @db.Uuid
   messageId   String?          @map("message_id") @db.Uuid
+  channelId   String?          @map("channel_id") @db.Uuid
   uploaderId  String           @map("uploader_id") @db.Uuid
   workspaceId String           @map("workspace_id") @db.Uuid
   s3Key       String           @map("s3_key")

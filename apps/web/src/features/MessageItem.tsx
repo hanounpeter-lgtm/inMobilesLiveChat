@@ -9,6 +9,7 @@ import { upsertMessage } from '../lib/message-cache';
 import { formatMentions, MENTION_HREF_PREFIX } from '../lib/mention-format';
 import { useUsersById } from '../lib/users';
 import { parseSticker, stickerUrl } from './stickers';
+import AttachmentList from './Attachments';
 
 const AUDIO_MESSAGE_RE = /^\[(recording|voice):([0-9a-f-]{36})\]$/;
 
@@ -264,6 +265,7 @@ export default function MessageItem({
             );
           })()
         )}
+        {!message.isDeleted && <AttachmentList attachments={message.attachments} />}
         {!message.isDeleted && <ReactionRow message={message} selfId={user?.id} />}
       </div>
       {own && !message.isDeleted && !pending && (

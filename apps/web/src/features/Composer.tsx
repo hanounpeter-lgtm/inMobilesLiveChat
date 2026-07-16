@@ -1,8 +1,14 @@
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { ChannelMemberDto, ChannelSummary, MessageDto } from '@inmobiles/shared-types';
+import type {
+  ChannelMemberDto,
+  ChannelSummary,
+  MessageAttachmentDto,
+  MessageDto,
+  UploadedAttachmentDto,
+} from '@inmobiles/shared-types';
 import { ClientEvents } from '@inmobiles/shared-types';
-import { api, apiUpload } from '../lib/api';
+import { api, apiUpload, apiUploadWithProgress } from '../lib/api';
 import { getSocket } from '../lib/socket';
 import { useAuth } from '../lib/auth-store';
 import { useChatStore } from '../lib/chat-store';
@@ -12,6 +18,19 @@ import { stickerContent, type Sticker } from './stickers';
 import type { GifDto } from '@inmobiles/shared-types';
 
 const TYPING_THROTTLE_MS = 3000;
+
+interface PendingUpload {
+  localId: string;
+  file: File;
+  previewUrl: string | null;
+  progress: number;
+  uploaded: UploadedAttachmentDto | null;
+  error: string | null;
+}
+
+const MAX_ATTACHMENTS = 10;
+const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
+const MAX_FILE_BYTES = 100 * 1024 * 1024;
 
 interface MentionTokenState {
   start: number; // index of the '@' in the value
@@ -51,6 +70,8 @@ export default function Composer({
   const voiceTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastTypingEmit = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [uploads, setUploads] = useState<PendingUpload[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [mentionToken, setMentionToken] = useState<MentionTokenState | null>(null);
   const [mentionIndex, setMentionIndex] = useState(0);
   const mentionMapRef = useRef(new Map<string, string>()); // displayName -> userId
@@ -172,6 +193,59 @@ export default function Composer({
     textareaRef.current?.focus();
   }, [channel.id]);
 
+  const patchUpload = (localId: string, patch: Partial<PendingUpload>) =>
+    setUploads((list) => list.map((u) => (u.localId === localId ? { ...u, ...patch } : u)));
+
+  const addFiles = (files: File[]) => {
+    const room = MAX_ATTACHMENTS - uploads.length;
+    for (const file of files.slice(0, room)) {
+      const localId = crypto.randomUUID();
+      const isImage = file.type.startsWith('image/');
+      const tooBig = isImage ? file.size > MAX_IMAGE_BYTES : file.size > MAX_FILE_BYTES;
+      const entry: PendingUpload = {
+        localId,
+        file,
+        previewUrl: isImage ? URL.createObjectURL(file) : null,
+        progress: 0,
+        uploaded: null,
+        error: tooBig ? (isImage ? 'Images max 25 MB' : 'Files max 100 MB') : null,
+      };
+      setUploads((list) => [...list, entry]);
+      if (tooBig) continue;
+      const form = new FormData();
+      form.append('file', file, file.name);
+      apiUploadWithProgress<UploadedAttachmentDto>(
+        `/channels/${channel.id}/attachments`,
+        form,
+        (pct) => patchUpload(localId, { progress: pct }),
+      )
+        .then((uploaded) => patchUpload(localId, { uploaded, progress: 100 }))
+        .catch((err) =>
+          patchUpload(localId, { error: err instanceof Error ? err.message : 'Upload failed' }),
+        );
+    }
+  };
+
+  const removeUpload = (localId: string) =>
+    setUploads((list) => {
+      const entry = list.find((u) => u.localId === localId);
+      if (entry?.previewUrl) URL.revokeObjectURL(entry.previewUrl);
+      return list.filter((u) => u.localId !== localId);
+    });
+
+  // Consume files dropped onto the message pane.
+  const composerFiles = useChatStore((s) => s.composerFiles);
+  const setComposerFiles = useChatStore((s) => s.setComposerFiles);
+  useEffect(() => {
+    if (!composerFiles?.length) return;
+    addFiles(composerFiles);
+    setComposerFiles(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [composerFiles]);
+
+  const uploadsInFlight = uploads.some((u) => !u.uploaded && !u.error);
+  const readyAttachments = uploads.filter((u) => u.uploaded).map((u) => u.uploaded!);
+
   // Consume queued inserts (quote reply from the context menu).
   const composerInsert = useChatStore((s) => s.composerInsert);
   const setComposerInsert = useChatStore((s) => s.setComposerInsert);
@@ -197,8 +271,12 @@ export default function Composer({
     getSocket()?.emit(ClientEvents.TypingStop, { channelId: channel.id });
   };
 
-  const send = async (content: string) => {
-    if (!content || !user) return;
+  const send = async (
+    content: string,
+    attachments: MessageAttachmentDto[] = [],
+    attachmentIds: string[] = [],
+  ) => {
+    if ((!content && attachmentIds.length === 0) || !user) return;
     stopTyping();
 
     const clientMsgId = crypto.randomUUID();
@@ -217,6 +295,7 @@ export default function Composer({
       isDeleted: false,
       isPinned: false,
       reactions: [],
+      attachments,
       createdAt: now,
       updatedAt: now,
     });
@@ -224,7 +303,11 @@ export default function Composer({
     try {
       const message = await api<MessageDto>(`/channels/${channel.id}/messages`, {
         method: 'POST',
-        body: JSON.stringify({ content, clientMsgId }),
+        body: JSON.stringify({
+          content,
+          clientMsgId,
+          ...(attachmentIds.length > 0 ? { attachmentIds } : {}),
+        }),
       });
       onOptimisticSend(message);
     } catch {
@@ -234,11 +317,16 @@ export default function Composer({
 
   const sendText = () => {
     const content = applyMentionTokens(value.trim());
-    if (!content) return;
+    if (uploadsInFlight) return;
+    if (!content && readyAttachments.length === 0) return;
+    const attachmentIds = readyAttachments.map((a) => a.id);
+    const attachmentDtos: MessageAttachmentDto[] = readyAttachments.map((a) => ({ ...a }));
     setValue('');
     setMentionToken(null);
     mentionMapRef.current.clear();
-    void send(content);
+    for (const u of uploads) if (u.previewUrl) URL.revokeObjectURL(u.previewUrl);
+    setUploads([]);
+    void send(content, attachmentDtos, attachmentIds);
   };
 
   const sendSticker = (sticker: Sticker) => {
@@ -311,7 +399,31 @@ export default function Composer({
   }
 
   return (
-    <div className="composer">
+    <div className="composer composer-with-chips">
+      {uploads.length > 0 && (
+        <div className="attachment-chips">
+          {uploads.map((u) => (
+            <div key={u.localId} className={`attachment-chip ${u.error ? 'chip-error' : ''}`}>
+              {u.previewUrl ? (
+                <img src={u.previewUrl} alt="" className="chip-thumb" />
+              ) : (
+                <span className="chip-icon">📎</span>
+              )}
+              <span className="chip-name">{u.file.name}</span>
+              {u.error ? (
+                <span className="error-text">{u.error}</span>
+              ) : !u.uploaded ? (
+                <span className="muted chip-progress">{u.progress}%</span>
+              ) : (
+                <span className="chip-done">✓</span>
+              )}
+              <button className="icon-btn chip-remove" onClick={() => removeUpload(u.localId)}>
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       {showStickers && <StickerPicker onPick={sendSticker} onClose={() => setShowStickers(false)} />}
       {showGifs && <GifPicker onPick={sendGif} onClose={() => setShowGifs(false)} />}
       <button
@@ -341,6 +453,24 @@ export default function Composer({
       >
         🎤
       </button>
+      <button
+        className="sticker-btn"
+        title="Attach files"
+        onClick={() => fileInputRef.current?.click()}
+      >
+        📎
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        hidden
+        data-testid="file-input"
+        onChange={(e) => {
+          addFiles([...(e.target.files ?? [])]);
+          e.target.value = '';
+        }}
+      />
       {voiceError && <span className="error-text voice-error">{voiceError}</span>}
       <textarea
         ref={textareaRef}
@@ -357,6 +487,13 @@ export default function Composer({
         }}
         onKeyDown={onKeyDown}
         onBlur={stopTyping}
+        onPaste={(e) => {
+          const files = [...(e.clipboardData?.files ?? [])];
+          if (files.length > 0) {
+            e.preventDefault();
+            addFiles(files);
+          }
+        }}
       />
       {mentionToken && mentionCandidates.length > 0 && (
         <div className="mention-popover">
@@ -375,8 +512,12 @@ export default function Composer({
           ))}
         </div>
       )}
-      <button className="send-btn" onClick={sendText} disabled={!value.trim()}>
-        Send
+      <button
+        className="send-btn"
+        onClick={sendText}
+        disabled={uploadsInFlight || (!value.trim() && readyAttachments.length === 0)}
+      >
+        {uploadsInFlight ? 'Uploading…' : 'Send'}
       </button>
     </div>
   );

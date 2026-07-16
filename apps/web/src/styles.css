@@ -661,6 +661,160 @@ textarea:focus {
   border-color: var(--danger);
 }
 
+/* ---------- Attachments ---------- */
+.composer-with-chips {
+  flex-wrap: wrap;
+}
+
+.attachment-chips {
+  width: 100%;
+  order: -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-bottom: 6px;
+}
+
+.attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg);
+  font-size: 12.5px;
+  max-width: 260px;
+}
+
+.attachment-chip.chip-error {
+  border-color: var(--danger);
+}
+
+.chip-thumb {
+  width: 26px;
+  height: 26px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+.chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 130px;
+}
+
+.chip-done {
+  color: var(--online);
+  font-weight: 700;
+}
+
+.chip-remove {
+  color: var(--text-muted);
+  padding: 0 4px;
+}
+
+.chip-remove:hover {
+  background: var(--bg-hover);
+}
+
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border: 3px dashed var(--accent);
+  border-radius: 12px;
+  margin: 8px;
+  pointer-events: none;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.message-pane {
+  position: relative;
+}
+
+.attachment-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.image-attachment {
+  max-width: 360px;
+  max-height: 280px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  cursor: zoom-in;
+  display: block;
+}
+
+.image-loading {
+  width: 240px;
+  height: 160px;
+  background: var(--bg-hover);
+  border-radius: var(--radius);
+}
+
+.file-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 13px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-raised);
+  color: var(--text);
+  font-size: 13.5px;
+  max-width: 380px;
+}
+
+.file-card:hover {
+  border-color: var(--accent);
+}
+
+.file-card-icon {
+  font-size: 20px;
+}
+
+.file-card-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-card-dl {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 82%);
+  cursor: zoom-out;
+}
+
+.lightbox img {
+  max-width: 92vw;
+  max-height: 92vh;
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+}
+
 /* ---------- Unreads / mentions ---------- */
 .unread-badge {
   margin-left: auto;

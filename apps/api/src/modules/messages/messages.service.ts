@@ -14,11 +14,16 @@ const PAGE_SIZE = 50;
 const messageInclude = {
   author: { select: { id: true, displayName: true, avatarUrl: true } },
   reactions: { select: { emoji: true, userId: true } },
+  attachments: {
+    select: { id: true, filename: true, mimeType: true, sizeBytes: true },
+    where: { status: 'ready' },
+  },
 } satisfies Prisma.MessageInclude;
 
 type MessageHydrated = Message & {
   author: Pick<User, 'id' | 'displayName' | 'avatarUrl'>;
   reactions: { emoji: string; userId: string }[];
+  attachments: { id: string; filename: string; mimeType: string; sizeBytes: bigint }[];
 };
 
 const encodeCursor = (m: Message) =>
@@ -66,6 +71,15 @@ export class MessagesService {
       isDeleted: m.deletedAt !== null,
       isPinned: m.isPinned,
       reactions: [...byEmoji.entries()].map(([emoji, userIds]) => ({ emoji, userIds })),
+      attachments: m.deletedAt
+        ? []
+        : m.attachments.map((a) => ({
+            id: a.id,
+            filename: a.filename,
+            mimeType: a.mimeType,
+            sizeBytes: Number(a.sizeBytes),
+            isImage: a.mimeType.startsWith('image/'),
+          })),
       createdAt: m.createdAt.toISOString(),
       updatedAt: m.updatedAt.toISOString(),
     };
@@ -99,6 +113,24 @@ export class MessagesService {
     }
 
     const message = await this.prisma.$transaction(async (tx) => {
+      // Attachments must be the sender's own, for this channel, and unlinked.
+      const attachmentIds = [...new Set(dto.attachmentIds ?? [])];
+      if (attachmentIds.length > 0) {
+        const attachments = await tx.attachment.findMany({
+          where: { id: { in: attachmentIds } },
+        });
+        const valid =
+          attachments.length === attachmentIds.length &&
+          attachments.every(
+            (a) =>
+              a.uploaderId === userId &&
+              a.channelId === channelId &&
+              a.status === 'ready' &&
+              a.messageId === null,
+          );
+        if (!valid) throw new BadRequestException('Invalid attachments');
+      }
+
       const created = await tx.message.create({
         data: {
           channelId,
@@ -109,6 +141,17 @@ export class MessagesService {
         },
         include: messageInclude,
       });
+      if (attachmentIds.length > 0) {
+        await tx.attachment.updateMany({
+          where: { id: { in: attachmentIds } },
+          data: { messageId: created.id },
+        });
+        const linked = await tx.attachment.findMany({
+          where: { id: { in: attachmentIds } },
+          select: { id: true, filename: true, mimeType: true, sizeBytes: true },
+        });
+        created.attachments = linked;
+      }
       await tx.channel.update({
         where: { id: channelId },
         data: { lastMessageAt: created.createdAt },

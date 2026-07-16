@@ -15,6 +15,9 @@ interface ChatState {
   /** Text queued for insertion into the composer (e.g. quote reply). */
   composerInsert: string | null;
   setComposerInsert: (text: string | null) => void;
+  /** Files dropped onto the message pane, consumed by the composer. */
+  composerFiles: File[] | null;
+  setComposerFiles: (files: File[] | null) => void;
   typingByChannel: Record<string, TypingUser[]>;
   onlineUserIds: Set<string>;
   setActiveChannel: (id: string | null) => void;
@@ -30,6 +33,8 @@ export const useChatStore = create<ChatState>((set) => ({
   setDetailsPanel: (open) => set({ detailsPanelOpen: open }),
   composerInsert: null,
   setComposerInsert: (text) => set({ composerInsert: text }),
+  composerFiles: null,
+  setComposerFiles: (files) => set({ composerFiles: files }),
   typingByChannel: {},
   onlineUserIds: new Set(),
 

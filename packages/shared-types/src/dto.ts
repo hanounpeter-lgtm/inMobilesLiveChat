@@ -156,6 +156,15 @@ export const ReactionGroup = z.object({
 });
 export type ReactionGroup = z.infer<typeof ReactionGroup>;
 
+export const MessageAttachmentDto = z.object({
+  id: z.string().uuid(),
+  filename: z.string(),
+  mimeType: z.string(),
+  sizeBytes: z.number(),
+  isImage: z.boolean(),
+});
+export type MessageAttachmentDto = z.infer<typeof MessageAttachmentDto>;
+
 export const MessageDto = z.object({
   id: z.string().uuid(),
   channelId: z.string().uuid(),
@@ -168,6 +177,7 @@ export const MessageDto = z.object({
   isDeleted: z.boolean(),
   isPinned: z.boolean(),
   reactions: z.array(ReactionGroup),
+  attachments: z.array(MessageAttachmentDto),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -178,12 +188,27 @@ export const ToggleReactionRequest = z.object({
 });
 export type ToggleReactionRequest = z.infer<typeof ToggleReactionRequest>;
 
-export const SendMessageRequest = z.object({
-  content: z.string().min(1).max(12000),
-  clientMsgId: z.string().uuid(),
-  parentMessageId: z.string().uuid().optional(),
-});
+export const SendMessageRequest = z
+  .object({
+    content: z.string().max(12000),
+    clientMsgId: z.string().uuid(),
+    parentMessageId: z.string().uuid().optional(),
+    attachmentIds: z.array(z.string().uuid()).max(10).optional(),
+  })
+  .refine(
+    (v) => v.content.trim().length > 0 || (v.attachmentIds?.length ?? 0) > 0,
+    'Message needs text or attachments',
+  );
 export type SendMessageRequest = z.infer<typeof SendMessageRequest>;
+
+export const UploadedAttachmentDto = z.object({
+  id: z.string().uuid(),
+  filename: z.string(),
+  mimeType: z.string(),
+  sizeBytes: z.number(),
+  isImage: z.boolean(),
+});
+export type UploadedAttachmentDto = z.infer<typeof UploadedAttachmentDto>;
 
 export const EditMessageRequest = z.object({
   content: z.string().min(1).max(12000),

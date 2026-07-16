@@ -35,6 +35,45 @@ export class ApiError extends Error {
   }
 }
 
+/** Multipart upload with progress callback (fetch cannot report upload progress). */
+export function apiUploadWithProgress<T>(
+  path: string,
+  form: FormData,
+  onProgress: (percent: number) => void,
+): Promise<T> {
+  const attempt = () =>
+    new Promise<{ status: number; body: string }>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `/api${path}`);
+      const token = getAccessToken();
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () => resolve({ status: xhr.status, body: xhr.responseText });
+      xhr.onerror = () => reject(new Error('Upload failed'));
+      xhr.send(form);
+    });
+
+  return attempt().then(async (res) => {
+    if (res.status === 401 && (await tryRefresh())) {
+      const retry = await attempt();
+      if (retry.status >= 400) throw new ApiError(retry.status, parseMessage(retry.body));
+      return JSON.parse(retry.body) as T;
+    }
+    if (res.status >= 400) throw new ApiError(res.status, parseMessage(res.body));
+    return JSON.parse(res.body) as T;
+  });
+}
+
+const parseMessage = (body: string): string => {
+  try {
+    return (JSON.parse(body) as { message?: string }).message ?? 'Upload failed';
+  } catch {
+    return 'Upload failed';
+  }
+};
+
 /** Multipart upload — same auth/refresh flow, but no JSON content-type. */
 export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
   const doFetch = () =>
