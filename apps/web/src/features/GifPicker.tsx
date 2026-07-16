@@ -41,7 +41,10 @@ export default function GifPicker({
     staleTime: 60_000,
   });
 
-  const notConfigured = gifs.error instanceof ApiError && gifs.error.status === 503;
+  const notConfigured =
+    gifs.error instanceof ApiError &&
+    gifs.error.status === 503 &&
+    gifs.error.message.includes('not configured');
 
   return (
     <div className="sticker-picker gif-picker" ref={ref}>
@@ -55,16 +58,18 @@ export default function GifPicker({
       />
       {notConfigured ? (
         <div className="muted gif-help">
-          GIF search needs a free Tenor API key.
+          GIF search needs a free GIPHY API key.
           <br />
-          1. Get one at <strong>developers.google.com/tenor</strong> (2 min)
+          1. Get one at <strong>developers.giphy.com</strong> (2 min)
           <br />
-          2. Put it in <code>.env</code> as <code>TENOR_API_KEY=…</code>
+          2. Put it in <code>.env</code> as <code>GIPHY_API_KEY=…</code>
           <br />
           3. Restart the API server.
         </div>
       ) : gifs.isError ? (
-        <div className="muted gif-help">GIF search failed — try again.</div>
+        <div className="muted gif-help">
+          {gifs.error instanceof ApiError ? gifs.error.message : 'GIF search failed — try again.'}
+        </div>
       ) : (
         <div className="gif-grid">
           {(gifs.data?.gifs ?? []).map((g) => (
