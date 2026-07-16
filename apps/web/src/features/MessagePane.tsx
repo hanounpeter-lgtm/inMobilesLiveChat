@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   ChannelSummary,
@@ -14,6 +14,7 @@ import { canManageChannel } from '../lib/permissions';
 import Composer from './Composer';
 import MessageItem from './MessageItem';
 import CallBanner from './CallBanner';
+import MessageContextMenu, { type MenuState } from './MessageContextMenu';
 
 // Stable fallback: returning a fresh [] from the zustand selector would make
 // every render look like a state change and loop forever.
@@ -83,6 +84,8 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
   };
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
+  const [contextMenu, setContextMenu] = useState<MenuState | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const query = useInfiniteQuery({
     queryKey: messagesKey(channel.id),
@@ -195,6 +198,11 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
               <MessageItem
                 message={m}
                 grouped={!newDay && shouldGroup(messages[i - 1], m)}
+                onContextMenu={(e, message) =>
+                  setContextMenu({ x: e.clientX, y: e.clientY, message })
+                }
+                isEditing={editingId === m.id}
+                onEditDone={() => setEditingId(null)}
               />
             </div>
           );
@@ -210,6 +218,13 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
         )}
       </div>
 
+      {contextMenu && (
+        <MessageContextMenu
+          menu={contextMenu}
+          onClose={() => setContextMenu(null)}
+          onStartEdit={(message) => setEditingId(message.id)}
+        />
+      )}
       {canPost ? (
         <Composer channel={channel} onOptimisticSend={onOptimisticSend} />
       ) : (

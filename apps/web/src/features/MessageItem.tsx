@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { FileUrlResponse, MessageDto } from '@inmobiles/shared-types';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth-store';
+import { upsertMessage } from '../lib/message-cache';
 import { parseSticker, stickerUrl } from './stickers';
 
 const AUDIO_MESSAGE_RE = /^\[(recording|voice):([0-9a-f-]{36})\]$/;
@@ -52,12 +54,82 @@ function avatarColor(id: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
+/** Inline editor shown in place of the message content. */
+function InlineEdit({ message, onDone }: { message: MessageDto; onDone: () => void }) {
+  const queryClient = useQueryClient();
+  const [value, setValue] = useState(message.content);
+  const [busy, setBusy] = useState(false);
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (el) {
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    }
+  }, []);
+
+  const save = async () => {
+    const content = value.trim();
+    if (!content || content === message.content) {
+      onDone();
+      return;
+    }
+    setBusy(true);
+    try {
+      const updated = await api<MessageDto>(`/messages/${message.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ content }),
+      });
+      upsertMessage(queryClient, updated);
+    } catch {
+      /* leave original; socket echo will correct if needed */
+    }
+    onDone();
+  };
+
+  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      void save();
+    }
+    if (e.key === 'Escape') onDone();
+  };
+
+  return (
+    <div className="edit-box">
+      <textarea
+        ref={ref}
+        value={value}
+        rows={Math.min(8, value.split('\n').length)}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={onKeyDown}
+      />
+      <div className="edit-actions">
+        <span className="muted">Enter to save · Esc to cancel</span>
+        <button className="btn-secondary" onClick={onDone} disabled={busy}>
+          Cancel
+        </button>
+        <button className="btn-primary" onClick={() => void save()} disabled={busy || !value.trim()}>
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function MessageItem({
   message,
   grouped,
+  onContextMenu,
+  isEditing = false,
+  onEditDone,
 }: {
   message: MessageDto;
   grouped: boolean;
+  onContextMenu?: (e: React.MouseEvent, message: MessageDto) => void;
+  isEditing?: boolean;
+  onEditDone?: () => void;
 }) {
   const user = useAuth((s) => s.user);
   const own = user?.id === message.author.id;
@@ -70,7 +142,17 @@ export default function MessageItem({
   };
 
   return (
-    <div className={`message ${grouped ? 'grouped' : ''} ${pending ? 'pending' : ''}`}>
+    <div
+      className={`message ${grouped ? 'grouped' : ''} ${pending ? 'pending' : ''}`}
+      onContextMenu={
+        onContextMenu && !pending
+          ? (e) => {
+              e.preventDefault();
+              onContextMenu(e, message);
+            }
+          : undefined
+      }
+    >
       {!grouped ? (
         <div className="avatar" style={{ background: avatarColor(message.author.id) }}>
           {message.author.displayName.slice(0, 1).toUpperCase()}
@@ -87,6 +169,8 @@ export default function MessageItem({
         )}
         {message.isDeleted ? (
           <div className="deleted muted">This message was deleted</div>
+        ) : isEditing && onEditDone ? (
+          <InlineEdit message={message} onDone={onEditDone} />
         ) : (
           (() => {
             const audioMatch = AUDIO_MESSAGE_RE.exec(message.content.trim());

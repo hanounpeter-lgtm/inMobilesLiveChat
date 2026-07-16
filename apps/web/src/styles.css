@@ -661,6 +661,77 @@ textarea:focus {
   border-color: var(--danger);
 }
 
+/* ---------- Context menu / inline edit ---------- */
+.context-menu {
+  position: fixed;
+  z-index: 200;
+  min-width: 172px;
+  display: flex;
+  flex-direction: column;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-lg);
+}
+
+.context-menu button {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 7px;
+  font-size: 14px;
+}
+
+.context-menu button:hover:not([disabled]) {
+  background: var(--bg-hover);
+}
+
+.context-menu .menu-danger {
+  color: var(--danger);
+}
+
+.context-menu .menu-danger:hover {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.edit-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.edit-box textarea {
+  width: 100%;
+  resize: none;
+  padding: 8px 10px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--text);
+  font: inherit;
+  line-height: 1.45;
+}
+
+.edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.edit-actions .muted {
+  margin-right: auto;
+}
+
+.edit-actions button {
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
 .typing-row {
   height: 20px;
   padding: 0 20px;
