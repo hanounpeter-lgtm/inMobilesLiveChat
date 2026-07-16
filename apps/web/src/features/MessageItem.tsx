@@ -32,10 +32,24 @@ function AudioMessage({ kind, attachmentId }: { kind: string; attachmentId: stri
 
 const timeFmt = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' });
 
+// Curated brand-adjacent palette — deterministic per user, no muddy hues.
+const AVATAR_COLORS = [
+  '#7C3AED', // violet
+  '#6366F1', // indigo
+  '#2563EB', // blue
+  '#0EA5E9', // sky
+  '#0891B2', // cyan
+  '#D946EF', // fuchsia
+  '#DB2777', // pink
+  '#E11D48', // rose
+  '#EA580C', // orange
+  '#B45309', // amber
+];
+
 function avatarColor(id: string): string {
   let hash = 0;
   for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) | 0;
-  return `hsl(${Math.abs(hash) % 360} 55% 45%)`;
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
 export default function MessageItem({

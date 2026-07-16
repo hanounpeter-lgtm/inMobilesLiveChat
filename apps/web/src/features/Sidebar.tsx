@@ -89,7 +89,10 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <span className="workspace-name">inMobiles</span>
+        <span className="workspace-brand">
+          <img src="/logo.svg" alt="" className="logo-mark small" />
+          <span className="workspace-name">inMobiles</span>
+        </span>
         {isAdmin && (
           <button
             className="icon-btn"

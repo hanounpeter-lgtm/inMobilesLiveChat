@@ -36,6 +36,29 @@ function shouldGroup(prev: MessageDto | undefined, curr: MessageDto): boolean {
   );
 }
 
+const dayFmt = new Intl.DateTimeFormat(undefined, {
+  weekday: 'long',
+  month: 'long',
+  day: 'numeric',
+});
+
+function dayLabel(iso: string): string {
+  const date = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+  if (sameDay(date, today)) return 'Today';
+  if (sameDay(date, yesterday)) return 'Yesterday';
+  return dayFmt.format(date);
+}
+
+const isNewDay = (prev: MessageDto | undefined, curr: MessageDto) =>
+  !prev || new Date(prev.createdAt).toDateString() !== new Date(curr.createdAt).toDateString();
+
 export default function MessagePane({ channel }: { channel: ChannelSummary }) {
   const queryClient = useQueryClient();
   const user = useAuth((s) => s.user);
@@ -160,9 +183,22 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
           </div>
         )}
         {query.isLoading && <div className="fullscreen-center muted">Loading messages…</div>}
-        {messages.map((m, i) => (
-          <MessageItem key={m.clientMsgId} message={m} grouped={shouldGroup(messages[i - 1], m)} />
-        ))}
+        {messages.map((m, i) => {
+          const newDay = isNewDay(messages[i - 1], m);
+          return (
+            <div key={m.clientMsgId}>
+              {newDay && (
+                <div className="day-divider">
+                  <span>{dayLabel(m.createdAt)}</span>
+                </div>
+              )}
+              <MessageItem
+                message={m}
+                grouped={!newDay && shouldGroup(messages[i - 1], m)}
+              />
+            </div>
+          );
+        })}
       </div>
 
       <div className="typing-row">

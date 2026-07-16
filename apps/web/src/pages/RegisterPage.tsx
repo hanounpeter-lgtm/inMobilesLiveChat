@@ -33,9 +33,12 @@ export default function RegisterPage() {
   return (
     <div className="fullscreen-center">
       <form className="login-card" onSubmit={onSubmit}>
-        <h1 className="login-logo">
-          in<span>Mobiles</span>
-        </h1>
+        <div className="brand">
+          <img src="/logo.svg" alt="" className="logo-mark" />
+          <h1 className="login-logo">
+            in<span>Mobiles</span>
+          </h1>
+        </div>
         <p className="muted">Create your account</p>
         <label>
           Your name
