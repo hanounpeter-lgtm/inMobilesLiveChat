@@ -1164,6 +1164,27 @@ button {
   color: #e3a008;
 }
 
+/* ---------- Voice notes ---------- */
+.composer.voice-recording {
+  align-items: center;
+  gap: 12px;
+}
+
+.voice-timer {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.voice-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.voice-error {
+  align-self: center;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 720px) {
   .sidebar {

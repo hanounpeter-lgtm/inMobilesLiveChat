@@ -6,12 +6,14 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/auth-store';
 import { parseSticker, stickerUrl } from './stickers';
 
-const RECORDING_RE = /^\[recording:([0-9a-f-]{36})\]$/;
+const AUDIO_MESSAGE_RE = /^\[(recording|voice):([0-9a-f-]{36})\]$/;
 
-/** Call recording message: resolves a short-lived playback URL, renders audio. */
-function RecordingMessage({ attachmentId }: { attachmentId: string }) {
+/** Audio message (call recording or voice note): resolves a short-lived
+ * playback URL and renders a labeled player. */
+function AudioMessage({ kind, attachmentId }: { kind: string; attachmentId: string }) {
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const label = kind === 'voice' ? '🎤 Voice note' : '🎙 Call recording';
 
   useEffect(() => {
     api<FileUrlResponse>(`/files/${attachmentId}/url`)
@@ -19,10 +21,10 @@ function RecordingMessage({ attachmentId }: { attachmentId: string }) {
       .catch(() => setFailed(true));
   }, [attachmentId]);
 
-  if (failed) return <div className="muted">🎙 Call recording unavailable</div>;
+  if (failed) return <div className="muted">{label} unavailable</div>;
   return (
     <div className="recording-message">
-      <span className="recording-label">🎙 Call recording</span>
+      <span className="recording-label">{label}</span>
       {url ? <audio controls preload="metadata" src={url} /> : <span className="muted">Loading…</span>}
     </div>
   );
@@ -73,9 +75,9 @@ export default function MessageItem({
           <div className="deleted muted">This message was deleted</div>
         ) : (
           (() => {
-            const recMatch = RECORDING_RE.exec(message.content.trim());
-            if (recMatch) {
-              return <RecordingMessage attachmentId={recMatch[1]} />;
+            const audioMatch = AUDIO_MESSAGE_RE.exec(message.content.trim());
+            if (audioMatch) {
+              return <AudioMessage kind={audioMatch[1]} attachmentId={audioMatch[2]} />;
             }
             const sticker = parseSticker(message.content);
             if (sticker) {

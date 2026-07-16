@@ -1,10 +1,12 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import type { MessageDto, MessagePage, SendMessageRequest } from '@inmobiles/shared-types';
 import { ServerEvents } from '@inmobiles/shared-types';
 import type { Message, User } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RealtimeService } from '../../gateway/realtime.service';
 import { ChannelsService } from '../channels/channels.service';
+import { S3Service } from '../files/s3.service';
 
 const PAGE_SIZE = 50;
 
@@ -30,7 +32,47 @@ export class MessagesService {
     private readonly prisma: PrismaService,
     private readonly realtime: RealtimeService,
     private readonly channels: ChannelsService,
+    private readonly s3: S3Service,
   ) {}
+
+  /** Store a recorded voice note and post it as a playable message. */
+  async sendVoiceNote(
+    channelId: string,
+    userId: string,
+    file: Express.Multer.File,
+  ): Promise<MessageDto> {
+    await this.channels.requirePostable(channelId, userId, false);
+    if (!file?.buffer?.length) throw new BadRequestException('Empty voice note');
+
+    const channel = await this.prisma.channel.findUniqueOrThrow({
+      where: { id: channelId },
+      select: { workspaceId: true },
+    });
+    const mime = file.mimetype || 'audio/webm';
+    const key = `voice-notes/${channel.workspaceId}/${channelId}/${randomUUID()}.webm`;
+    await this.s3.putObject(key, file.buffer, mime);
+
+    const attachment = await this.prisma.attachment.create({
+      data: {
+        uploaderId: userId,
+        workspaceId: channel.workspaceId,
+        s3Key: key,
+        filename: `voice-note-${new Date().toISOString().slice(0, 16).replace(':', '-')}.webm`,
+        mimeType: mime,
+        sizeBytes: BigInt(file.buffer.length),
+        status: 'ready',
+      },
+    });
+    const message = await this.send(channelId, userId, {
+      content: `[voice:${attachment.id}]`,
+      clientMsgId: randomUUID(),
+    });
+    await this.prisma.attachment.update({
+      where: { id: attachment.id },
+      data: { messageId: message.id },
+    });
+    return message;
+  }
 
   private toDto(m: MessageWithAuthor): MessageDto {
     return {

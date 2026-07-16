@@ -9,8 +9,11 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { EditMessageRequest, SendMessageRequest } from '@inmobiles/shared-types';
 import { CurrentUserId } from '../../common/current-user.decorator';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
@@ -29,6 +32,16 @@ export class MessagesController {
     @Body(new ZodValidationPipe(SendMessageRequest)) body: SendMessageRequest,
   ) {
     return this.messages.send(channelId, userId, body);
+  }
+
+  @Post('channels/:channelId/voice-notes')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024 } }))
+  sendVoiceNote(
+    @CurrentUserId() userId: string,
+    @Param('channelId', ParseUUIDPipe) channelId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.messages.sendVoiceNote(channelId, userId, file);
   }
 
   @Get('channels/:channelId/messages')
