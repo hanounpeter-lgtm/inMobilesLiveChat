@@ -178,10 +178,23 @@ export const MessageDto = z.object({
   isPinned: z.boolean(),
   reactions: z.array(ReactionGroup),
   attachments: z.array(MessageAttachmentDto),
+  lastReplyAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
 export type MessageDto = z.infer<typeof MessageDto>;
+
+export const ThreadReplyPayload = z.object({
+  parentMessageId: z.string().uuid(),
+  message: MessageDto,
+});
+export type ThreadReplyPayload = z.infer<typeof ThreadReplyPayload>;
+
+export const ThreadResponse = z.object({
+  parent: MessageDto,
+  messages: z.array(MessageDto),
+});
+export type ThreadResponse = z.infer<typeof ThreadResponse>;
 
 export const ToggleReactionRequest = z.object({
   emoji: z.string().min(1).max(16),

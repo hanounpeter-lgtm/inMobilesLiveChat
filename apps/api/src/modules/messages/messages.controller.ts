@@ -54,8 +54,8 @@ export class MessagesController {
   }
 
   @Get('messages/:id/thread')
-  async thread(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) id: string) {
-    return { messages: await this.messages.listThread(id, userId) };
+  thread(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.messages.listThread(id, userId);
   }
 
   @Get('channels/:channelId/pins')

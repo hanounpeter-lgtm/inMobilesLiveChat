@@ -12,6 +12,10 @@ interface ChatState {
   setCurrentCall: (call: JoinCallResponse | null) => void;
   detailsPanelOpen: boolean;
   setDetailsPanel: (open: boolean) => void;
+  /** Parent message id of the open thread panel (exclusive with details). */
+  threadOpenFor: string | null;
+  openThread: (messageId: string) => void;
+  closeThread: () => void;
   /** Text queued for insertion into the composer (e.g. quote reply). */
   composerInsert: string | null;
   setComposerInsert: (text: string | null) => void;
@@ -30,7 +34,10 @@ export const useChatStore = create<ChatState>((set) => ({
   currentCall: null,
   setCurrentCall: (call) => set({ currentCall: call }),
   detailsPanelOpen: false,
-  setDetailsPanel: (open) => set({ detailsPanelOpen: open }),
+  setDetailsPanel: (open) => set(open ? { detailsPanelOpen: true, threadOpenFor: null } : { detailsPanelOpen: false }),
+  threadOpenFor: null,
+  openThread: (messageId) => set({ threadOpenFor: messageId, detailsPanelOpen: false }),
+  closeThread: () => set({ threadOpenFor: null }),
   composerInsert: null,
   setComposerInsert: (text) => set({ composerInsert: text }),
   composerFiles: null,
@@ -38,7 +45,7 @@ export const useChatStore = create<ChatState>((set) => ({
   typingByChannel: {},
   onlineUserIds: new Set(),
 
-  setActiveChannel: (id) => set({ activeChannelId: id }),
+  setActiveChannel: (id) => set({ activeChannelId: id, threadOpenFor: null }),
 
   setTyping: (channelId, users) =>
     set((s) => ({ typingByChannel: { ...s.typingByChannel, [channelId]: users } })),

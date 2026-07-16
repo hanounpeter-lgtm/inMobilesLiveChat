@@ -142,6 +142,16 @@ export default function MessageContextMenu({
         </button>
       )}
       {isPlainText && <button onClick={quote}>Quote reply</button>}
+      {!message.parentMessageId && (
+        <button
+          onClick={() => {
+            onClose();
+            useChatStore.getState().openThread(message.id);
+          }}
+        >
+          Reply in thread
+        </button>
+      )}
       {audioMatch && <button onClick={() => void download()}>Download audio</button>}
       {!message.isDeleted && (
         <button onClick={togglePin}>{message.isPinned ? 'Unpin message' : 'Pin message'}</button>

@@ -11,6 +11,7 @@ import {
   PresenceUpdatePayload,
   ServerEvents,
   ClientEvents,
+  ThreadReplyPayload,
   TypingUpdatePayload,
   UnreadState,
 } from '@inmobiles/shared-types';
@@ -19,11 +20,19 @@ import { applyUnreadUpdate, bumpLocalUnread, unreadsKey, useUnreads } from '../l
 import { api } from '../lib/api';
 import { getSocket } from '../lib/socket';
 import { useChatStore } from '../lib/chat-store';
-import { upsertMessage, removeMessage } from '../lib/message-cache';
+import {
+  upsertMessage,
+  removeMessage,
+  upsertThreadReply,
+  bumpReplyCount,
+  patchThreadMessage,
+  markThreadMessageDeleted,
+} from '../lib/message-cache';
 import Sidebar from '../features/Sidebar';
 import MessagePane from '../features/MessagePane';
 import CallOverlay from '../features/CallOverlay';
 import ChannelDetailsPanel from '../features/ChannelDetailsPanel';
+import ThreadPanel from '../features/ThreadPanel';
 
 export default function AppShell() {
   const queryClient = useQueryClient();
@@ -88,11 +97,18 @@ export default function AppShell() {
     };
     const onMessageUpdated = ({ message }: MessageNewPayload) => {
       upsertMessage(queryClient, message);
+      patchThreadMessage(queryClient, message);
       queryClient.invalidateQueries({ queryKey: ['pins', message.channelId] });
     };
     const onMessageDeleted = ({ messageId, channelId }: MessageDeletedPayload) => {
       removeMessage(queryClient, channelId, messageId);
+      markThreadMessageDeleted(queryClient, messageId);
       queryClient.invalidateQueries({ queryKey: ['pins', channelId] });
+    };
+    const onThreadReply = ({ parentMessageId, message }: ThreadReplyPayload) => {
+      upsertThreadReply(queryClient, parentMessageId, message);
+      bumpReplyCount(queryClient, message.channelId, parentMessageId, message.createdAt);
+      // Hook point: thread-follow notifications land here in a later phase.
     };
     const onTyping = ({ channelId, users }: TypingUpdatePayload) => setTyping(channelId, users);
     const onPresence = ({ userId, status }: PresenceUpdatePayload) =>
@@ -157,6 +173,7 @@ export default function AppShell() {
     socket.on(ServerEvents.MessageNew, onMessageNew);
     socket.on(ServerEvents.MessageUpdated, onMessageUpdated);
     socket.on(ServerEvents.MessageDeleted, onMessageDeleted);
+    socket.on(ServerEvents.ThreadReply, onThreadReply);
     socket.on(ServerEvents.TypingUpdate, onTyping);
     socket.on(ServerEvents.PresenceUpdate, onPresence);
     socket.on(ServerEvents.ChannelCreated, onChannelCreated);
@@ -175,6 +192,7 @@ export default function AppShell() {
       queryClient.invalidateQueries({ queryKey: ['messages'] });
       queryClient.invalidateQueries({ queryKey: ['channels'] });
       queryClient.invalidateQueries({ queryKey: unreadsKey });
+      queryClient.invalidateQueries({ queryKey: ['thread'] });
     };
     socket.io.on('reconnect', onReconnect);
 
@@ -182,6 +200,7 @@ export default function AppShell() {
       socket.off(ServerEvents.MessageNew, onMessageNew);
       socket.off(ServerEvents.MessageUpdated, onMessageUpdated);
       socket.off(ServerEvents.MessageDeleted, onMessageDeleted);
+      socket.off(ServerEvents.ThreadReply, onThreadReply);
       socket.off(ServerEvents.TypingUpdate, onTyping);
       socket.off(ServerEvents.PresenceUpdate, onPresence);
       socket.off(ServerEvents.ChannelCreated, onChannelCreated);
@@ -201,6 +220,7 @@ export default function AppShell() {
   const activeChannel = channels.find((c) => c.id === activeChannelId) ?? null;
   const currentCall = useChatStore((s) => s.currentCall);
   const detailsPanelOpen = useChatStore((s) => s.detailsPanelOpen);
+  const threadOpenFor = useChatStore((s) => s.threadOpenFor);
 
   return (
     <div className="app-shell">
@@ -212,7 +232,12 @@ export default function AppShell() {
           {channelsQuery.isLoading ? 'Loading channels…' : 'Select a channel'}
         </div>
       )}
-      {detailsPanelOpen && activeChannel && <ChannelDetailsPanel channel={activeChannel} />}
+      {threadOpenFor && activeChannel && (
+        <ThreadPanel key={threadOpenFor} parentId={threadOpenFor} channel={activeChannel} />
+      )}
+      {detailsPanelOpen && !threadOpenFor && activeChannel && (
+        <ChannelDetailsPanel channel={activeChannel} />
+      )}
       {currentCall && <CallOverlay key={currentCall.call.id} join={currentCall} />}
     </div>
   );

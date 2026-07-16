@@ -54,9 +54,12 @@ function detectMentionToken(value: string, caret: number): MentionTokenState | n
 export default function Composer({
   channel,
   onOptimisticSend,
+  parentMessageId,
 }: {
   channel: ChannelSummary;
   onOptimisticSend: (message: MessageDto) => void;
+  /** When set, sends thread replies instead of top-level messages. */
+  parentMessageId?: string;
 }) {
   const user = useAuth((s) => s.user);
   const [value, setValue] = useState('');
@@ -257,6 +260,7 @@ export default function Composer({
   }, [composerInsert, setComposerInsert]);
 
   const emitTyping = () => {
+    if (parentMessageId) return; // channel-level typing would be misleading
     const socket = getSocket();
     if (!socket) return;
     const now = Date.now();
@@ -286,7 +290,8 @@ export default function Composer({
     onOptimisticSend({
       id: clientMsgId,
       channelId: channel.id,
-      parentMessageId: null,
+      parentMessageId: parentMessageId ?? null,
+      lastReplyAt: null,
       content,
       clientMsgId,
       author: { id: user.id, displayName: user.displayName, avatarUrl: user.avatarUrl },
@@ -306,6 +311,7 @@ export default function Composer({
         body: JSON.stringify({
           content,
           clientMsgId,
+          ...(parentMessageId ? { parentMessageId } : {}),
           ...(attachmentIds.length > 0 ? { attachmentIds } : {}),
         }),
       });
@@ -368,8 +374,9 @@ export default function Composer({
     }
   };
 
-  const placeholder =
-    channel.type === 'dm' || channel.type === 'group_dm'
+  const placeholder = parentMessageId
+    ? 'Reply…'
+    : channel.type === 'dm' || channel.type === 'group_dm'
       ? 'Write a message…'
       : `Message #${channel.name}`;
 
@@ -446,13 +453,15 @@ export default function Composer({
       >
         GIF
       </button>
-      <button
-        className="sticker-btn"
-        title="Record a voice note"
-        onClick={() => void startVoiceNote()}
-      >
-        🎤
-      </button>
+      {!parentMessageId && (
+        <button
+          className="sticker-btn"
+          title="Record a voice note"
+          onClick={() => void startVoiceNote()}
+        >
+          🎤
+        </button>
+      )}
       <button
         className="sticker-btn"
         title="Attach files"

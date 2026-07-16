@@ -17,6 +17,7 @@ import CallBanner from './CallBanner';
 import MessageContextMenu, { type MenuState } from './MessageContextMenu';
 import { useMarkRead } from '../lib/use-mark-read';
 import { useUnreads } from '../lib/unreads';
+import { shouldGroup } from '../lib/message-utils';
 
 // Stable fallback: returning a fresh [] from the zustand selector would make
 // every render look like a state change and loop forever.
@@ -27,16 +28,6 @@ function channelTitle(channel: ChannelSummary): string {
     return channel.memberPreviews?.map((m) => m.displayName).join(', ') || 'Direct message';
   }
   return `${channel.type === 'private' ? '🔒' : '#'} ${channel.name}`;
-}
-
-/** Group consecutive messages from the same author within 5 minutes. */
-function shouldGroup(prev: MessageDto | undefined, curr: MessageDto): boolean {
-  if (!prev) return false;
-  return (
-    prev.author.id === curr.author.id &&
-    !prev.isDeleted &&
-    new Date(curr.createdAt).getTime() - new Date(prev.createdAt).getTime() < 5 * 60 * 1000
-  );
 }
 
 const dayFmt = new Intl.DateTimeFormat(undefined, {

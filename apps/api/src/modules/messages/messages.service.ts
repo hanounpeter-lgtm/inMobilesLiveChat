@@ -80,6 +80,7 @@ export class MessagesService {
             sizeBytes: Number(a.sizeBytes),
             isImage: a.mimeType.startsWith('image/'),
           })),
+      lastReplyAt: m.lastReplyAt?.toISOString() ?? null,
       createdAt: m.createdAt.toISOString(),
       updatedAt: m.updatedAt.toISOString(),
     };
@@ -262,8 +263,14 @@ export class MessagesService {
     };
   }
 
-  async listThread(parentMessageId: string, userId: string): Promise<MessageDto[]> {
-    const parent = await this.prisma.message.findUnique({ where: { id: parentMessageId } });
+  async listThread(
+    parentMessageId: string,
+    userId: string,
+  ): Promise<{ parent: MessageDto; messages: MessageDto[] }> {
+    const parent = await this.prisma.message.findUnique({
+      where: { id: parentMessageId },
+      include: messageInclude,
+    });
     if (!parent) throw new NotFoundException('Message not found');
     await this.channels.requireMembership(parent.channelId, userId);
     const rows = await this.prisma.message.findMany({
@@ -271,7 +278,7 @@ export class MessagesService {
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       include: messageInclude,
     });
-    return rows.map((m) => this.toDto(m));
+    return { parent: this.toDto(parent), messages: rows.map((m) => this.toDto(m)) };
   }
 
   async listPins(channelId: string, userId: string): Promise<MessageDto[]> {

@@ -7,6 +7,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/auth-store';
 import { upsertMessage } from '../lib/message-cache';
 import { formatMentions, MENTION_HREF_PREFIX } from '../lib/mention-format';
+import { useChatStore } from '../lib/chat-store';
 import { useUsersById } from '../lib/users';
 import { parseSticker, stickerUrl } from './stickers';
 import AttachmentList from './Attachments';
@@ -146,21 +147,29 @@ function InlineEdit({ message, onDone }: { message: MessageDto; onDone: () => vo
   );
 }
 
+const replyTimeFmt = new Intl.DateTimeFormat(undefined, {
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
 export default function MessageItem({
   message,
   grouped,
   onContextMenu,
   isEditing = false,
   onEditDone,
+  showReplyPill = true,
 }: {
   message: MessageDto;
   grouped: boolean;
   onContextMenu?: (e: React.MouseEvent, message: MessageDto) => void;
   isEditing?: boolean;
   onEditDone?: () => void;
+  showReplyPill?: boolean;
 }) {
   const user = useAuth((s) => s.user);
   const usersById = useUsersById();
+  const openThread = useChatStore((s) => s.openThread);
   const own = user?.id === message.author.id;
   const pending = message.id === message.clientMsgId; // optimistic placeholder
 
@@ -267,6 +276,14 @@ export default function MessageItem({
         )}
         {!message.isDeleted && <AttachmentList attachments={message.attachments} />}
         {!message.isDeleted && <ReactionRow message={message} selfId={user?.id} />}
+        {showReplyPill && message.replyCount > 0 && !message.parentMessageId && (
+          <button className="reply-pill" onClick={() => openThread(message.id)}>
+            💬 {message.replyCount} {message.replyCount === 1 ? 'reply' : 'replies'}
+            {message.lastReplyAt && (
+              <span className="muted"> · {replyTimeFmt.format(new Date(message.lastReplyAt))}</span>
+            )}
+          </button>
+        )}
       </div>
       {own && !message.isDeleted && !pending && (
         <button className="message-action" title="Delete" onClick={onDelete}>

@@ -661,6 +661,60 @@ textarea:focus {
   border-color: var(--danger);
 }
 
+/* ---------- Threads ---------- */
+.thread-panel {
+  width: 380px;
+}
+
+.thread-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 0;
+}
+
+.thread-panel .composer {
+  margin: 8px 12px 12px;
+}
+
+.thread-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 16px;
+}
+
+.thread-divider::before,
+.thread-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.thread-divider span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.reply-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-raised);
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.reply-pill:hover {
+  border-color: var(--accent);
+}
+
 /* ---------- Search ---------- */
 .search-modal {
   width: 560px;
