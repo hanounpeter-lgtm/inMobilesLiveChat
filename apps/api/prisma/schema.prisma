@@ -73,6 +73,7 @@ model User {
   pushSubscriptions    PushSubscription[]
   startedCalls         Call[]
   channelInvites       ChannelInvite[]
+  workspaceInvites     WorkspaceInvite[]
 
   @@map("users")
 }
@@ -86,8 +87,28 @@ model Workspace {
 
   members  WorkspaceMember[]
   channels Channel[]
+  invites  WorkspaceInvite[]
 
   @@map("workspaces")
+}
+
+model WorkspaceInvite {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  workspaceId String        @map("workspace_id") @db.Uuid
+  email       String
+  role        WorkspaceRole @default(member)
+  token       String        @unique
+  invitedById String        @map("invited_by") @db.Uuid
+  expiresAt   DateTime      @map("expires_at") @db.Timestamptz()
+  acceptedAt  DateTime?     @map("accepted_at") @db.Timestamptz()
+  revokedAt   DateTime?     @map("revoked_at") @db.Timestamptz()
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User      @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, email])
+  @@map("workspace_invites")
 }
 
 model WorkspaceMember {

@@ -217,6 +217,37 @@ export const InvitePreview = z.object({
 });
 export type InvitePreview = z.infer<typeof InvitePreview>;
 
+// ---------- Workspace invites / signup ----------
+export const CreateWorkspaceInvitesRequest = z.object({
+  emails: z.array(z.string().email()).min(1).max(20),
+  role: z.enum(['member', 'admin']).default('member'),
+});
+export type CreateWorkspaceInvitesRequest = z.infer<typeof CreateWorkspaceInvitesRequest>;
+
+export const WorkspaceInviteDto = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  role: z.enum(['owner', 'admin', 'member', 'guest']),
+  token: z.string(),
+  invitedBy: z.string(),
+  expiresAt: z.string().datetime(),
+  createdAt: z.string().datetime(),
+});
+export type WorkspaceInviteDto = z.infer<typeof WorkspaceInviteDto>;
+
+export const SignupPreview = z.object({
+  email: z.string().email(),
+  workspaceName: z.string(),
+  invitedBy: z.string(),
+});
+export type SignupPreview = z.infer<typeof SignupPreview>;
+
+export const AcceptSignupRequest = z.object({
+  displayName: z.string().min(1).max(80),
+  password: z.string().min(8).max(128),
+});
+export type AcceptSignupRequest = z.infer<typeof AcceptSignupRequest>;
+
 // ---------- GIFs ----------
 export const GifDto = z.object({
   id: z.string(),

@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/auth-store';
 import { useChatStore } from '../lib/chat-store';
 import CreateChannelModal from './CreateChannelModal';
+import InvitePeopleModal from './InvitePeopleModal';
 
 interface DirectoryUser {
   id: string;
@@ -28,6 +29,8 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
   const [showDmPicker, setShowDmPicker] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
+  const isAdmin = user?.role === 'owner' || user?.role === 'admin';
 
   const usersQuery = useQuery({
     queryKey: ['users'],
@@ -87,6 +90,15 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
     <aside className="sidebar">
       <div className="sidebar-header">
         <span className="workspace-name">inMobiles</span>
+        {isAdmin && (
+          <button
+            className="icon-btn"
+            title="Invite people to the workspace"
+            onClick={() => setShowInvite(true)}
+          >
+            ✉+
+          </button>
+        )}
       </div>
 
       <div className="sidebar-scroll">
@@ -155,6 +167,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
       </div>
 
       {showCreate && <CreateChannelModal onClose={() => setShowCreate(false)} />}
+      {showInvite && <InvitePeopleModal onClose={() => setShowInvite(false)} />}
     </aside>
   );
 }

@@ -9,6 +9,7 @@ import { MessagesModule } from './modules/messages/messages.module';
 import { CallsModule } from './modules/calls/calls.module';
 import { FilesModule } from './modules/files/files.module';
 import { GifsModule } from './modules/gifs/gifs.module';
+import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { HealthController } from './health.controller';
 
@@ -29,6 +30,7 @@ import { HealthController } from './health.controller';
     CallsModule,
     FilesModule,
     GifsModule,
+    WorkspacesModule,
   ],
   controllers: [HealthController],
 })

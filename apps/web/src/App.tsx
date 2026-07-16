@@ -4,6 +4,7 @@ import { useAuth } from './lib/auth-store';
 import LoginPage from './pages/LoginPage';
 import AppShell from './pages/AppShell';
 import JoinPage from './pages/JoinPage';
+import SignupPage from './pages/SignupPage';
 
 const REDIRECT_KEY = 'postLoginRedirect';
 
@@ -44,6 +45,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={authed ? <PostLoginTarget /> : <LoginPage />} />
       <Route path="/join/:token" element={authed ? <JoinPage /> : <SaveRedirectAndLogin />} />
+      <Route path="/signup/:token" element={<SignupPage />} />
       <Route path="/*" element={authed ? <AppShell /> : <Navigate to="/login" replace />} />
     </Routes>
   );
