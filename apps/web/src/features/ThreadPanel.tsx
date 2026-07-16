@@ -8,6 +8,7 @@ import { shouldGroup } from '../lib/message-utils';
 import Composer from './Composer';
 import MessageItem from './MessageItem';
 import MessageContextMenu, { type MenuState } from './MessageContextMenu';
+import { IconX } from '../components/icons';
 
 export default function ThreadPanel({
   parentId,
@@ -57,7 +58,7 @@ export default function ThreadPanel({
       <div className="details-header">
         <h3>{title}</h3>
         <button className="icon-btn" title="Close" onClick={closeThread}>
-          ✕
+          <IconX size={15} />
         </button>
       </div>
 

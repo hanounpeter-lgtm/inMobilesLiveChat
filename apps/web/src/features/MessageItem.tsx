@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth-store';
 import { upsertMessage } from '../lib/message-cache';
 import { formatMentions, MENTION_HREF_PREFIX } from '../lib/mention-format';
 import { useChatStore } from '../lib/chat-store';
+import { IconHeadphones, IconMessageCircle, IconMic, IconPin, IconX } from '../components/icons';
 import { useUsersById } from '../lib/users';
 import { parseSticker, stickerUrl } from './stickers';
 import AttachmentList from './Attachments';
@@ -19,7 +20,8 @@ const AUDIO_MESSAGE_RE = /^\[(recording|voice):([0-9a-f-]{36})\]$/;
 function AudioMessage({ kind, attachmentId }: { kind: string; attachmentId: string }) {
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  const label = kind === 'voice' ? '🎤 Voice note' : '🎙 Call recording';
+  const label = kind === 'voice' ? 'Voice note' : 'Call recording';
+  const icon = kind === 'voice' ? <IconMic size={13} /> : <IconHeadphones size={13} />;
 
   useEffect(() => {
     api<FileUrlResponse>(`/files/${attachmentId}/url`)
@@ -30,7 +32,9 @@ function AudioMessage({ kind, attachmentId }: { kind: string; attachmentId: stri
   if (failed) return <div className="muted">{label} unavailable</div>;
   return (
     <div className="recording-message">
-      <span className="recording-label">{label}</span>
+      <span className="recording-label">
+        {icon} {label}
+      </span>
       {url ? <audio controls preload="metadata" src={url} /> : <span className="muted">Loading…</span>}
     </div>
   );
@@ -205,14 +209,14 @@ export default function MessageItem({
             <span className="timestamp">{timeFmt.format(new Date(message.createdAt))}</span>
             {message.isPinned && (
               <span className="pin-indicator" title="Pinned message">
-                📌
+                <IconPin size={12} />
               </span>
             )}
           </div>
         )}
         {grouped && message.isPinned && (
           <span className="pin-indicator grouped-pin" title="Pinned message">
-            📌
+            <IconPin size={12} />
           </span>
         )}
         {message.isDeleted ? (
@@ -278,7 +282,8 @@ export default function MessageItem({
         {!message.isDeleted && <ReactionRow message={message} selfId={user?.id} />}
         {showReplyPill && message.replyCount > 0 && !message.parentMessageId && (
           <button className="reply-pill" onClick={() => openThread(message.id)}>
-            💬 {message.replyCount} {message.replyCount === 1 ? 'reply' : 'replies'}
+            <IconMessageCircle size={13} /> {message.replyCount}{' '}
+            {message.replyCount === 1 ? 'reply' : 'replies'}
             {message.lastReplyAt && (
               <span className="muted"> · {replyTimeFmt.format(new Date(message.lastReplyAt))}</span>
             )}
@@ -287,7 +292,7 @@ export default function MessageItem({
       </div>
       {own && !message.isDeleted && !pending && (
         <button className="message-action" title="Delete" onClick={onDelete}>
-          ✕
+          <IconX size={12} />
         </button>
       )}
     </div>

@@ -94,7 +94,7 @@ export class CallsService {
       const dto = this.toDto(call);
       this.realtime.toChannel(channelId, ServerEvents.CallStarted, { call: dto });
       await this.messages.send(channelId, userId, {
-        content: type === 'video' ? '🎥 started a video call' : '📞 started a call',
+        content: type === 'video' ? 'Started a video call' : 'Started a call',
         clientMsgId: randomUUID(),
       });
     }
@@ -130,7 +130,7 @@ export class CallsService {
     });
     const minutes = Math.max(1, Math.round((ended.endedAt!.getTime() - call.startedAt.getTime()) / 60000));
     await this.messages.send(call.channelId, userId, {
-      content: `📞 call ended · ${minutes} min`,
+      content: `Call ended · ${minutes} min`,
       clientMsgId: randomUUID(),
     });
   }
@@ -167,8 +167,8 @@ export class CallsService {
     });
     await this.messages.send(call.channelId, userId, {
       content: recording
-        ? `🔴 ${user.displayName} started recording this call`
-        : '⏹ Recording stopped',
+        ? `${user.displayName} started recording this call`
+        : 'Recording stopped',
       clientMsgId: randomUUID(),
     });
     return this.toDto(updated);

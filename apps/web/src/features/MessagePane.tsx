@@ -18,6 +18,7 @@ import MessageContextMenu, { type MenuState } from './MessageContextMenu';
 import { useMarkRead } from '../lib/use-mark-read';
 import { useUnreads } from '../lib/unreads';
 import { shouldGroup } from '../lib/message-utils';
+import { IconInfo, IconLock, IconPhone, IconStar, IconVideo } from '../components/icons';
 
 // Stable fallback: returning a fresh [] from the zustand selector would make
 // every render look like a state change and loop forever.
@@ -27,7 +28,7 @@ function channelTitle(channel: ChannelSummary): string {
   if (channel.type === 'dm' || channel.type === 'group_dm') {
     return channel.memberPreviews?.map((m) => m.displayName).join(', ') || 'Direct message';
   }
-  return `${channel.type === 'private' ? '🔒' : '#'} ${channel.name}`;
+  return channel.name ?? '';
 }
 
 const dayFmt = new Intl.DateTimeFormat(undefined, {
@@ -192,7 +193,11 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
         </div>
       )}
       <header className="channel-header">
-        <h2>{channelTitle(channel)}</h2>
+        <h2>
+          {channel.type === 'private' && <IconLock size={15} />}
+          {channel.type === 'public' && <span className="title-hash">#</span>}
+          {channelTitle(channel)}
+        </h2>
         {channel.topic && <span className="muted topic">{channel.topic}</span>}
         {channel.isArchived && <span className="archived-pill">Archived</span>}
         <div className="header-actions">
@@ -201,7 +206,7 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
             title={channel.isStarred ? 'Unstar channel' : 'Star channel'}
             onClick={() => void toggleStar()}
           >
-            {channel.isStarred ? '★' : '☆'}
+            <IconStar filled={channel.isStarred} />
           </button>
           <button
             className="call-btn"
@@ -209,7 +214,7 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
             disabled={inCall || channel.isArchived}
             onClick={() => void startCall('audio')}
           >
-            📞
+            <IconPhone />
           </button>
           <button
             className="call-btn"
@@ -217,14 +222,14 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
             disabled={inCall || channel.isArchived}
             onClick={() => void startCall('video')}
           >
-            🎥
+            <IconVideo />
           </button>
           <button
             className="call-btn"
             title="Channel details"
             onClick={() => setDetailsPanel(!detailsPanelOpen)}
           >
-            ⓘ
+            <IconInfo />
           </button>
         </div>
       </header>
@@ -267,9 +272,14 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
 
       <div className="typing-row">
         {typingOthers.length > 0 && (
-          <span>
+          <span className="typing-indicator">
+            <span className="typing-dots">
+              <span />
+              <span />
+              <span />
+            </span>
             {typingOthers.map((t) => t.displayName).join(', ')}{' '}
-            {typingOthers.length === 1 ? 'is' : 'are'} typing…
+            {typingOthers.length === 1 ? 'is' : 'are'} typing
           </span>
         )}
       </div>

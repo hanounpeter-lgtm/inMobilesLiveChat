@@ -52,7 +52,7 @@ export default function ActivityModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal activity-modal">
-        <h3 className="modal-title">＠ Activity</h3>
+        <h3 className="modal-title">Activity</h3>
         <div className="activity-list">
           {rows.map((n) => (
             <button

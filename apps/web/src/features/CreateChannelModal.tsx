@@ -123,14 +123,14 @@ export default function CreateChannelModal({ onClose }: { onClose: () => void })
               className={type === 'public' ? 'active' : ''}
               onClick={() => setType('public')}
             >
-              # Public
+              Public
             </button>
             <button
               type="button"
               className={type === 'private' ? 'active' : ''}
               onClick={() => setType('private')}
             >
-              🔒 Private
+              Private
             </button>
           </div>
           <span className="muted hint">

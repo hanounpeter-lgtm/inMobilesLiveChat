@@ -14,6 +14,7 @@ import { useAuth } from '../lib/auth-store';
 import { useChatStore } from '../lib/chat-store';
 import StickerPicker from './StickerPicker';
 import GifPicker from './GifPicker';
+import { IconFile, IconMic, IconPaperclip, IconSmile, IconX } from '../components/icons';
 import { stickerContent, type Sticker } from './stickers';
 import type { GifDto } from '@inmobiles/shared-types';
 
@@ -414,7 +415,9 @@ export default function Composer({
               {u.previewUrl ? (
                 <img src={u.previewUrl} alt="" className="chip-thumb" />
               ) : (
-                <span className="chip-icon">📎</span>
+                <span className="chip-icon">
+                  <IconFile size={15} />
+                </span>
               )}
               <span className="chip-name">{u.file.name}</span>
               {u.error ? (
@@ -425,7 +428,7 @@ export default function Composer({
                 <span className="chip-done">✓</span>
               )}
               <button className="icon-btn chip-remove" onClick={() => removeUpload(u.localId)}>
-                ✕
+                <IconX size={12} />
               </button>
             </div>
           ))}
@@ -441,7 +444,7 @@ export default function Composer({
           setShowStickers((v) => !v);
         }}
       >
-        😀
+        <IconSmile />
       </button>
       <button
         className="sticker-btn gif-btn"
@@ -459,7 +462,7 @@ export default function Composer({
           title="Record a voice note"
           onClick={() => void startVoiceNote()}
         >
-          🎤
+          <IconMic />
         </button>
       )}
       <button
@@ -467,7 +470,7 @@ export default function Composer({
         title="Attach files"
         onClick={() => fileInputRef.current?.click()}
       >
-        📎
+        <IconPaperclip />
       </button>
       <input
         ref={fileInputRef}

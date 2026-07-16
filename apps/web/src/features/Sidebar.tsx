@@ -9,6 +9,14 @@ import InvitePeopleModal from './InvitePeopleModal';
 import ActivityModal from './ActivityModal';
 import SearchModal from './SearchModal';
 import { useUnreads } from '../lib/unreads';
+import {
+  IconAt,
+  IconLock,
+  IconLogOut,
+  IconPlus,
+  IconSearch,
+  IconUserPlus,
+} from '../components/icons';
 
 interface DirectoryUser {
   id: string;
@@ -100,7 +108,9 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
         {isDm ? (
           <span className={`presence-dot ${online ? 'online' : ''}`} />
         ) : (
-          <span className="channel-hash">{c.type === 'private' ? '🔒' : '#'}</span>
+          <span className="channel-hash">
+            {c.type === 'private' ? <IconLock size={13} /> : '#'}
+          </span>
         )}
         <span className="channel-label">{isDm ? dmTitle(c) : c.name}</span>
         {(unreads[c.id]?.mentionCount ?? 0) > 0 && (
@@ -123,7 +133,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
             title="Invite people to the workspace"
             onClick={() => setShowInvite(true)}
           >
-            ✉+
+            <IconUserPlus size={16} />
           </button>
         )}
       </div>
@@ -131,12 +141,16 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
       <div className="sidebar-scroll">
         <div className="sidebar-section">
           <button className="channel-item" onClick={() => setShowSearch(true)}>
-            <span className="channel-hash">🔍</span>
+            <span className="channel-hash">
+              <IconSearch size={14} />
+            </span>
             <span className="channel-label">Search</span>
             <span className="muted kbd-hint">Ctrl K</span>
           </button>
           <button className="channel-item" onClick={() => setShowActivity(true)}>
-            <span className="channel-hash">＠</span>
+            <span className="channel-hash">
+              <IconAt size={14} />
+            </span>
             <span className="channel-label">Activity</span>
             {totalMentions > 0 && <span className="unread-badge">{totalMentions}</span>}
           </button>
@@ -154,7 +168,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
           <div className="sidebar-section-title">
             <span>Channels</span>
             <button className="icon-btn" title="Create channel" onClick={() => setShowCreate(true)}>
-              +
+              <IconPlus size={14} />
             </button>
           </div>
           {regular.map(channelButton)}
@@ -164,7 +178,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
           <div className="sidebar-section-title">
             <span>Direct messages</span>
             <button className="icon-btn" title="New DM" onClick={() => setShowDmPicker((v) => !v)}>
-              +
+              <IconPlus size={14} />
             </button>
           </div>
           {showDmPicker && (
@@ -201,7 +215,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
           <span className="me-name">{user?.displayName}</span>
         </div>
         <button className="icon-btn" title="Sign out" onClick={() => void logout()}>
-          ⎋
+          <IconLogOut size={15} />
         </button>
       </div>
 

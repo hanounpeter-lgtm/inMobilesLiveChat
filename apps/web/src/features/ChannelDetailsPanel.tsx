@@ -13,6 +13,7 @@ import { api, ApiError } from '../lib/api';
 import { useAuth } from '../lib/auth-store';
 import { useChatStore } from '../lib/chat-store';
 import { canManageChannel } from '../lib/permissions';
+import { IconStar, IconX } from '../components/icons';
 
 type Tab = 'about' | 'members' | 'pins' | 'settings';
 
@@ -61,7 +62,7 @@ export default function ChannelDetailsPanel({ channel }: { channel: ChannelSumma
       <div className="details-header">
         <h3>{isDm ? 'Conversation details' : `# ${channel.name}`}</h3>
         <button className="icon-btn" title="Close" onClick={() => closePanel(false)}>
-          ✕
+          <IconX size={15} />
         </button>
       </div>
 
@@ -115,10 +116,10 @@ const pinTimeFmt = new Intl.DateTimeFormat(undefined, {
 
 function pinSnippet(content: string): string {
   const trimmed = content.trim();
-  if (/^\[sticker:/.test(trimmed)) return '😀 Sticker';
-  if (/^\[voice:/.test(trimmed)) return '🎤 Voice note';
-  if (/^\[recording:/.test(trimmed)) return '🎙 Call recording';
-  if (/^!\[GIF\]/.test(trimmed)) return '🖼 GIF';
+  if (/^\[sticker:/.test(trimmed)) return 'Sticker';
+  if (/^\[voice:/.test(trimmed)) return 'Voice note';
+  if (/^\[recording:/.test(trimmed)) return 'Call recording';
+  if (/^!\[GIF\]/.test(trimmed)) return 'GIF';
   return trimmed.length > 140 ? `${trimmed.slice(0, 140)}…` : trimmed;
 }
 
@@ -191,7 +192,8 @@ function AboutTab({
             title={channel.isStarred ? 'Unstar' : 'Star'}
             onClick={() => onMySettings({ isStarred: !channel.isStarred })}
           >
-            {channel.isStarred ? '★ Starred' : '☆ Star'}
+            <IconStar size={13} filled={channel.isStarred} />
+            {channel.isStarred ? ' Starred' : ' Star'}
           </button>
         </div>
       </div>
@@ -204,7 +206,7 @@ function AboutTab({
             <dt>Description</dt>
             <dd>{channel.description || <span className="muted">No description</span>}</dd>
             <dt>Visibility</dt>
-            <dd>{channel.type === 'private' ? '🔒 Private' : '# Public'}</dd>
+            <dd>{channel.type === 'private' ? 'Private' : 'Public'}</dd>
             <dt>Posting</dt>
             <dd>{channel.postingPolicy === 'admins_only' ? 'Admins only' : 'Everyone'}</dd>
           </dl>
@@ -320,7 +322,7 @@ function MembersTab({
                 title={`Remove ${m.displayName}`}
                 onClick={() => removeMember.mutate(m.id)}
               >
-                ✕
+                <IconX size={13} />
               </button>
             )}
           </div>
@@ -368,7 +370,7 @@ function CopyInviteLink({ channelId }: { channelId: string }) {
   return (
     <div className="invite-link-block">
       <button className="btn-secondary full-width" onClick={() => void copy()}>
-        {state === 'copied' ? '✓ Link copied' : '🔗 Copy invite link'}
+        {state === 'copied' ? 'Link copied ✓' : 'Copy invite link'}
       </button>
       {(state === 'error' || state === 'copied') && lastUrl && (
         <input className="invite-url" readOnly value={lastUrl} onFocus={(e) => e.target.select()} />

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { CallDto, ChannelSummary, JoinCallResponse } from '@inmobiles/shared-types';
 import { api } from '../lib/api';
 import { useChatStore } from '../lib/chat-store';
+import { IconPhone, IconVideo } from '../components/icons';
 
 export const activeCallKey = (channelId: string) => ['call', channelId] as const;
 
@@ -28,9 +29,9 @@ export default function CallBanner({ channel }: { channel: ChannelSummary }) {
 
   return (
     <div className="call-banner">
-      <span>
-        {call.type === 'video' ? '🎥' : '📞'} Call in progress — started by{' '}
-        <strong>{call.startedBy.displayName}</strong>
+      <span className="call-banner-text">
+        {call.type === 'video' ? <IconVideo size={16} /> : <IconPhone size={16} />} Call in
+        progress — started by <strong>{call.startedBy.displayName}</strong>
         {call.isRecording && (
           <span className="rec-badge banner-rec">
             <span className="rec-dot" /> REC
