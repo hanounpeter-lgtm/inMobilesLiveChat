@@ -1,5 +1,6 @@
-import { KeyboardEvent, useEffect, useRef, useState } from 'react';
-import type { ChannelSummary, MessageDto } from '@inmobiles/shared-types';
+import { KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import type { ChannelMemberDto, ChannelSummary, MessageDto } from '@inmobiles/shared-types';
 import { ClientEvents } from '@inmobiles/shared-types';
 import { api, apiUpload } from '../lib/api';
 import { getSocket } from '../lib/socket';
@@ -11,6 +12,25 @@ import { stickerContent, type Sticker } from './stickers';
 import type { GifDto } from '@inmobiles/shared-types';
 
 const TYPING_THROTTLE_MS = 3000;
+
+interface MentionTokenState {
+  start: number; // index of the '@' in the value
+  caret: number; // caret position when detected
+  query: string;
+}
+
+interface MentionCandidate {
+  id: string; // userId or the literal 'channel'
+  displayName: string;
+}
+
+/** Find an in-progress @token immediately before the caret. */
+function detectMentionToken(value: string, caret: number): MentionTokenState | null {
+  const before = value.slice(0, caret);
+  const match = /(^|\s)@([\w .-]{0,30})$/.exec(before);
+  if (!match) return null;
+  return { start: caret - match[2].length - 1, caret, query: match[2] };
+}
 
 export default function Composer({
   channel,
@@ -31,6 +51,63 @@ export default function Composer({
   const voiceTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastTypingEmit = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [mentionToken, setMentionToken] = useState<MentionTokenState | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const mentionMapRef = useRef(new Map<string, string>()); // displayName -> userId
+
+  const isDmChannel = channel.type === 'dm' || channel.type === 'group_dm';
+  const membersQuery = useQuery({
+    queryKey: ['channel-members', channel.id],
+    queryFn: () => api<{ members: ChannelMemberDto[] }>(`/channels/${channel.id}/members`),
+    enabled: mentionToken !== null,
+    staleTime: 60_000,
+  });
+
+  const mentionCandidates = useMemo<MentionCandidate[]>(() => {
+    if (!mentionToken) return [];
+    const q = mentionToken.query.toLowerCase();
+    const people = (membersQuery.data?.members ?? [])
+      .filter((m) => m.id !== user?.id && m.displayName.toLowerCase().includes(q))
+      .slice(0, 6)
+      .map((m) => ({ id: m.id, displayName: m.displayName }));
+    if (!isDmChannel && 'channel'.startsWith(q)) {
+      people.push({ id: 'channel', displayName: 'channel' });
+    }
+    return people;
+  }, [mentionToken, membersQuery.data, user?.id, isDmChannel]);
+
+  const pickMention = (candidate: MentionCandidate) => {
+    if (!mentionToken) return;
+    const insert = `@${candidate.displayName} `;
+    const next =
+      value.slice(0, mentionToken.start) + insert + value.slice(mentionToken.caret);
+    if (candidate.id !== 'channel') {
+      mentionMapRef.current.set(candidate.displayName, candidate.id);
+    }
+    setValue(next);
+    setMentionToken(null);
+    const el = textareaRef.current;
+    if (el) {
+      const pos = mentionToken.start + insert.length;
+      requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(pos, pos);
+      });
+    }
+  };
+
+  /** Convert picked @Display Name tokens to durable <@id> tokens. */
+  const applyMentionTokens = (raw: string): string => {
+    let content = raw;
+    const entries = [...mentionMapRef.current.entries()].sort(
+      (a, b) => b[0].length - a[0].length,
+    );
+    for (const [name, id] of entries) {
+      content = content.split(`@${name}`).join(`<@${id}>`);
+    }
+    content = content.replace(/(^|\s)@channel\b/g, '$1<!channel>');
+    return content;
+  };
 
   const stopVoiceHardware = () => {
     if (voiceTimer.current) clearInterval(voiceTimer.current);
@@ -156,9 +233,11 @@ export default function Composer({
   };
 
   const sendText = () => {
-    const content = value.trim();
+    const content = applyMentionTokens(value.trim());
     if (!content) return;
     setValue('');
+    setMentionToken(null);
+    mentionMapRef.current.clear();
     void send(content);
   };
 
@@ -173,6 +252,28 @@ export default function Composer({
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // Typeahead navigation takes priority over send.
+    if (mentionToken && mentionCandidates.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionIndex((i) => (i + 1) % mentionCandidates.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionIndex((i) => (i - 1 + mentionCandidates.length) % mentionCandidates.length);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        pickMention(mentionCandidates[mentionIndex]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        setMentionToken(null);
+        return;
+      }
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendText();
@@ -248,12 +349,32 @@ export default function Composer({
         rows={Math.min(8, value.split('\n').length)}
         onChange={(e) => {
           setValue(e.target.value);
+          const token = detectMentionToken(e.target.value, e.target.selectionStart ?? 0);
+          setMentionToken(token);
+          if (token) setMentionIndex(0);
           if (e.target.value) emitTyping();
           else stopTyping();
         }}
         onKeyDown={onKeyDown}
         onBlur={stopTyping}
       />
+      {mentionToken && mentionCandidates.length > 0 && (
+        <div className="mention-popover">
+          {mentionCandidates.map((c, i) => (
+            <button
+              key={c.id}
+              className={`mention-option ${i === mentionIndex ? 'active' : ''}`}
+              onMouseDown={(e) => {
+                e.preventDefault(); // keep textarea focus
+                pickMention(c);
+              }}
+            >
+              @{c.displayName}
+              {c.id === 'channel' && <span className="muted"> — notify everyone</span>}
+            </button>
+          ))}
+        </div>
+      )}
       <button className="send-btn" onClick={sendText} disabled={!value.trim()}>
         Send
       </button>

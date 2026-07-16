@@ -6,6 +6,8 @@ import { useAuth } from '../lib/auth-store';
 import { useChatStore } from '../lib/chat-store';
 import CreateChannelModal from './CreateChannelModal';
 import InvitePeopleModal from './InvitePeopleModal';
+import ActivityModal from './ActivityModal';
+import { useUnreads } from '../lib/unreads';
 
 interface DirectoryUser {
   id: string;
@@ -24,13 +26,15 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
   const queryClient = useQueryClient();
   const activeChannelId = useChatStore((s) => s.activeChannelId);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
-  const lastSeen = useChatStore((s) => s.lastSeenByChannel);
   const onlineUserIds = useChatStore((s) => s.onlineUserIds);
+  const { unreads } = useUnreads();
   const [showDmPicker, setShowDmPicker] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
   const isAdmin = user?.role === 'owner' || user?.role === 'admin';
+  const totalMentions = Object.values(unreads).reduce((sum, u) => sum + u.mentionCount, 0);
 
   const usersQuery = useQuery({
     queryKey: ['users'],
@@ -51,11 +55,14 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
     },
   });
 
+  // Bold per notify level; the numeric badge (mentions/DMs) always shows.
   const isUnread = (c: ChannelSummary) => {
-    if (!c.lastMessageAt || c.id === activeChannelId) return false;
-    if (c.notifyLevel === 'none') return false; // muted channels never bold
-    const seen = lastSeen[c.id];
-    return !seen || new Date(c.lastMessageAt) > new Date(seen);
+    if (c.id === activeChannelId) return false;
+    const u = unreads[c.id];
+    if (!u) return false;
+    if (c.notifyLevel === 'none') return false;
+    if (c.notifyLevel === 'mentions') return u.mentionCount > 0;
+    return u.hasUnread || u.mentionCount > 0;
   };
 
   const live = channels.filter((c) => !c.isArchived);
@@ -81,7 +88,10 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
         ) : (
           <span className="channel-hash">{c.type === 'private' ? '🔒' : '#'}</span>
         )}
-        {isDm ? dmTitle(c) : c.name}
+        <span className="channel-label">{isDm ? dmTitle(c) : c.name}</span>
+        {(unreads[c.id]?.mentionCount ?? 0) > 0 && (
+          <span className="unread-badge">{unreads[c.id]!.mentionCount}</span>
+        )}
       </button>
     );
   };
@@ -105,6 +115,13 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
       </div>
 
       <div className="sidebar-scroll">
+        <div className="sidebar-section">
+          <button className="channel-item" onClick={() => setShowActivity(true)}>
+            <span className="channel-hash">＠</span>
+            <span className="channel-label">Activity</span>
+            {totalMentions > 0 && <span className="unread-badge">{totalMentions}</span>}
+          </button>
+        </div>
         {starred.length > 0 && (
           <div className="sidebar-section">
             <div className="sidebar-section-title">
@@ -171,6 +188,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
 
       {showCreate && <CreateChannelModal onClose={() => setShowCreate(false)} />}
       {showInvite && <InvitePeopleModal onClose={() => setShowInvite(false)} />}
+      {showActivity && <ActivityModal onClose={() => setShowActivity(false)} />}
     </aside>
   );
 }

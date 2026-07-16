@@ -246,6 +246,7 @@ model Notification {
   actor User? @relation("NotificationActor", fields: [actorId], references: [id])
 
   @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, readAt, channelId])
   @@map("notifications")
 }
 

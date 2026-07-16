@@ -17,11 +17,9 @@ interface ChatState {
   setComposerInsert: (text: string | null) => void;
   typingByChannel: Record<string, TypingUser[]>;
   onlineUserIds: Set<string>;
-  lastSeenByChannel: Record<string, string>; // channelId -> ISO timestamp
   setActiveChannel: (id: string | null) => void;
   setTyping: (channelId: string, users: TypingUser[]) => void;
   setPresence: (userId: string, online: boolean) => void;
-  markSeen: (channelId: string) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -34,15 +32,8 @@ export const useChatStore = create<ChatState>((set) => ({
   setComposerInsert: (text) => set({ composerInsert: text }),
   typingByChannel: {},
   onlineUserIds: new Set(),
-  lastSeenByChannel: {},
 
-  setActiveChannel: (id) =>
-    set((s) => ({
-      activeChannelId: id,
-      lastSeenByChannel: id
-        ? { ...s.lastSeenByChannel, [id]: new Date().toISOString() }
-        : s.lastSeenByChannel,
-    })),
+  setActiveChannel: (id) => set({ activeChannelId: id }),
 
   setTyping: (channelId, users) =>
     set((s) => ({ typingByChannel: { ...s.typingByChannel, [channelId]: users } })),
@@ -55,8 +46,4 @@ export const useChatStore = create<ChatState>((set) => ({
       return { onlineUserIds: next };
     }),
 
-  markSeen: (channelId) =>
-    set((s) => ({
-      lastSeenByChannel: { ...s.lastSeenByChannel, [channelId]: new Date().toISOString() },
-    })),
 }));

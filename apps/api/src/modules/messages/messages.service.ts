@@ -7,6 +7,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RealtimeService } from '../../gateway/realtime.service';
 import { ChannelsService } from '../channels/channels.service';
 import { S3Service } from '../files/s3.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const PAGE_SIZE = 50;
 
@@ -39,6 +40,7 @@ export class MessagesService {
     private readonly realtime: RealtimeService,
     private readonly channels: ChannelsService,
     private readonly s3: S3Service,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private toDto(m: MessageHydrated): MessageDto {
@@ -111,6 +113,12 @@ export class MessagesService {
         where: { id: channelId },
         data: { lastMessageAt: created.createdAt },
       });
+      // Author self-read: your own message never makes the channel unread,
+      // on any of your devices.
+      await tx.channelMember.update({
+        where: { channelId_userId: { channelId, userId } },
+        data: { lastReadAt: created.createdAt, lastReadMessageId: created.id },
+      });
       if (dto.parentMessageId) {
         await tx.message.update({
           where: { id: dto.parentMessageId },
@@ -129,6 +137,12 @@ export class MessagesService {
     } else {
       this.realtime.toChannel(channelId, ServerEvents.MessageNew, { message: messageDto });
     }
+
+    void (async () => {
+      const channel = await this.prisma.channel.findUniqueOrThrow({ where: { id: channelId } });
+      await this.notifications.fanOutForMessage(message, channel, userId);
+    })().catch(() => undefined);
+
     return messageDto;
   }
 
@@ -295,6 +309,7 @@ export class MessagesService {
       where: { id: messageId },
       data: { deletedAt: new Date(), isPinned: false },
     });
+    void this.notifications.clearForMessage(messageId).catch(() => undefined);
     this.realtime.toChannel(message.channelId, ServerEvents.MessageDeleted, {
       messageId,
       channelId: message.channelId,

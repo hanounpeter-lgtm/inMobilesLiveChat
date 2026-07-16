@@ -20,6 +20,7 @@ import { ServerEvents } from '@inmobiles/shared-types';
 import type { Channel, ChannelMember, Prisma, User } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RealtimeService } from '../../gateway/realtime.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const memberInclude = {
   members: {
@@ -38,6 +39,7 @@ export class ChannelsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtime: RealtimeService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ---------- Guards ----------
@@ -416,6 +418,7 @@ export class ChannelsService {
     });
     this.realtime.toUser(targetUserId, ServerEvents.ChannelRemoved, { channelId });
     this.realtime.evictFromChannel(targetUserId, channelId);
+    void this.notifications.clearForChannel(targetUserId, channelId).catch(() => undefined);
   }
 
   // ---------- Invite links ----------

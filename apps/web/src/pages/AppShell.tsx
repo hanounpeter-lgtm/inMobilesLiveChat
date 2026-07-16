@@ -12,7 +12,10 @@ import {
   ServerEvents,
   ClientEvents,
   TypingUpdatePayload,
+  UnreadState,
 } from '@inmobiles/shared-types';
+import { useAuth } from '../lib/auth-store';
+import { applyUnreadUpdate, bumpLocalUnread, unreadsKey, useUnreads } from '../lib/unreads';
 import { api } from '../lib/api';
 import { getSocket } from '../lib/socket';
 import { useChatStore } from '../lib/chat-store';
@@ -28,7 +31,8 @@ export default function AppShell() {
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
   const setTyping = useChatStore((s) => s.setTyping);
   const setPresence = useChatStore((s) => s.setPresence);
-  const markSeen = useChatStore((s) => s.markSeen);
+  const user = useAuth((s) => s.user);
+  useUnreads(); // warm the ['unreads'] cache early
 
   const channelsQuery = useQuery({
     queryKey: ['channels'],
@@ -75,8 +79,11 @@ export default function AppShell() {
             }
           : data,
       );
-      if (message.channelId === useChatStore.getState().activeChannelId) {
-        markSeen(message.channelId);
+      // Bold the channel locally unless it's mine or the active, focused channel.
+      const isActive =
+        message.channelId === useChatStore.getState().activeChannelId && document.hasFocus();
+      if (message.author.id !== user?.id && !isActive) {
+        bumpLocalUnread(queryClient, message.channelId);
       }
     };
     const onMessageUpdated = ({ message }: MessageNewPayload) => {
@@ -137,6 +144,9 @@ export default function AppShell() {
       queryClient.setQueryData(['call', call.channelId], { call });
     const onCallEnded = ({ channelId }: CallEndedPayload) =>
       queryClient.setQueryData(['call', channelId], { call: null });
+    const onUnreadUpdate = (state: UnreadState) => applyUnreadUpdate(queryClient, state);
+    const onNotificationNew = () =>
+      queryClient.invalidateQueries({ queryKey: ['activity'] });
     const onCallRecording = (payload: { channelId: string; isRecording: boolean }) =>
       queryClient.setQueryData<{ call: { isRecording: boolean } | null }>(
         ['call', payload.channelId],
@@ -157,11 +167,14 @@ export default function AppShell() {
     socket.on(ServerEvents.CallStarted, onCallStarted);
     socket.on(ServerEvents.CallEnded, onCallEnded);
     socket.on(ServerEvents.CallRecording, onCallRecording);
+    socket.on(ServerEvents.UnreadUpdate, onUnreadUpdate);
+    socket.on(ServerEvents.NotificationNew, onNotificationNew);
 
     // Reconnect recovery: REST is the source of truth.
     const onReconnect = () => {
       queryClient.invalidateQueries({ queryKey: ['messages'] });
       queryClient.invalidateQueries({ queryKey: ['channels'] });
+      queryClient.invalidateQueries({ queryKey: unreadsKey });
     };
     socket.io.on('reconnect', onReconnect);
 
@@ -179,9 +192,11 @@ export default function AppShell() {
       socket.off(ServerEvents.CallStarted, onCallStarted);
       socket.off(ServerEvents.CallEnded, onCallEnded);
       socket.off(ServerEvents.CallRecording, onCallRecording);
+      socket.off(ServerEvents.UnreadUpdate, onUnreadUpdate);
+      socket.off(ServerEvents.NotificationNew, onNotificationNew);
       socket.io.off('reconnect', onReconnect);
     };
-  }, [queryClient, setTyping, setPresence, markSeen]);
+  }, [queryClient, setTyping, setPresence, setActiveChannel, user?.id]);
 
   const activeChannel = channels.find((c) => c.id === activeChannelId) ?? null;
   const currentCall = useChatStore((s) => s.currentCall);

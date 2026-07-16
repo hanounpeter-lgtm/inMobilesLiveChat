@@ -27,7 +27,6 @@ export const ClientEvents = {
   RoomLeave: 'room:leave',
   TypingStart: 'typing:start',
   TypingStop: 'typing:stop',
-  ChannelFocus: 'channel:focus',
 } as const;
 
 export type ServerEventName = (typeof ServerEvents)[keyof typeof ServerEvents];

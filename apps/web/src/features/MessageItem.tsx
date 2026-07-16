@@ -1,11 +1,13 @@
 import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { FileUrlResponse, MessageDto } from '@inmobiles/shared-types';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth-store';
 import { upsertMessage } from '../lib/message-cache';
+import { formatMentions, MENTION_HREF_PREFIX } from '../lib/mention-format';
+import { useUsersById } from '../lib/users';
 import { parseSticker, stickerUrl } from './stickers';
 
 const AUDIO_MESSAGE_RE = /^\[(recording|voice):([0-9a-f-]{36})\]$/;
@@ -157,6 +159,7 @@ export default function MessageItem({
   onEditDone?: () => void;
 }) {
   const user = useAuth((s) => s.user);
+  const usersById = useUsersById();
   const own = user?.id === message.author.id;
   const pending = message.id === message.clientMsgId; // optimistic placeholder
 
@@ -225,8 +228,37 @@ export default function MessageItem({
             }
             return (
               <div className="message-content">
-                {/* react-markdown never injects raw HTML — safe against XSS. */}
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                {/* react-markdown never injects raw HTML — safe against XSS.
+                    Mention tokens are pre-processed into mention:// links and
+                    rendered as chips by the custom anchor component. */}
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  // Keep the default sanitizer but let our mention:// scheme
+                  // through — it renders as a chip, never as a real link.
+                  urlTransform={(url) =>
+                    url.startsWith(MENTION_HREF_PREFIX) ? url : defaultUrlTransform(url)
+                  }
+                  components={{
+                    a: ({ href, children }) => {
+                      if (href?.startsWith(MENTION_HREF_PREFIX)) {
+                        const id = href.slice(MENTION_HREF_PREFIX.length);
+                        const isSelf = id === 'channel' || id === user?.id;
+                        return (
+                          <span className={`mention ${isSelf ? 'mention-self' : ''}`}>
+                            {children}
+                          </span>
+                        );
+                      }
+                      return (
+                        <a href={href} target="_blank" rel="noreferrer">
+                          {children}
+                        </a>
+                      );
+                    },
+                  }}
+                >
+                  {formatMentions(message.content, usersById)}
+                </ReactMarkdown>
                 {message.isEdited && <span className="edited muted">(edited)</span>}
               </div>
             );

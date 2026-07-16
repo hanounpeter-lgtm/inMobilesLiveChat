@@ -15,6 +15,8 @@ import Composer from './Composer';
 import MessageItem from './MessageItem';
 import CallBanner from './CallBanner';
 import MessageContextMenu, { type MenuState } from './MessageContextMenu';
+import { useMarkRead } from '../lib/use-mark-read';
+import { useUnreads } from '../lib/unreads';
 
 // Stable fallback: returning a fresh [] from the zustand selector would make
 // every render look like a state change and loop forever.
@@ -64,7 +66,14 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
   const queryClient = useQueryClient();
   const user = useAuth((s) => s.user);
   const typing = useChatStore((s) => s.typingByChannel[channel.id] ?? NO_TYPING);
-  const markSeen = useChatStore((s) => s.markSeen);
+  const markRead = useMarkRead(channel.id);
+  const { unreads, isLoaded: unreadsLoaded } = useUnreads();
+  // Freeze the unread boundary at first render so the divider doesn't jump
+  // while you're reading; it resets on channel switch (component remount).
+  const divider = useRef<{ set: boolean; at: string | null }>({ set: false, at: null });
+  if (!divider.current.set && unreadsLoaded) {
+    divider.current = { set: true, at: unreads[channel.id]?.lastReadAt ?? null };
+  }
   const setCurrentCall = useChatStore((s) => s.setCurrentCall);
   const inCall = useChatStore((s) => s.currentCall !== null);
   const detailsPanelOpen = useChatStore((s) => s.detailsPanelOpen);
@@ -120,8 +129,31 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
   useEffect(() => {
     const el = scrollRef.current;
     if (el && stickToBottom.current) el.scrollTop = el.scrollHeight;
-    markSeen(channel.id);
-  }, [messages.length, channel.id, markSeen]);
+    const latest = messages[messages.length - 1];
+    if (latest && stickToBottom.current && document.hasFocus()) {
+      markRead(latest.id);
+    }
+  }, [messages, channel.id, markRead]);
+
+  // Focusing the window while at the bottom counts as reading.
+  useEffect(() => {
+    const onFocus = () => {
+      const latest = messages[messages.length - 1];
+      if (latest && stickToBottom.current) markRead(latest.id);
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [messages, markRead]);
+
+  // First unread boundary for the "New messages" divider.
+  const firstUnreadId = useMemo(() => {
+    if (!divider.current.set) return null;
+    const at = divider.current.at ? new Date(divider.current.at).getTime() : 0;
+    const first = messages.find(
+      (m) => new Date(m.createdAt).getTime() > at && m.author.id !== user?.id,
+    );
+    return first?.id ?? null;
+  }, [messages, user?.id]);
 
   const typingOthers = typing.filter((t) => t.id !== user?.id);
 
@@ -193,6 +225,11 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
               {newDay && (
                 <div className="day-divider">
                   <span>{dayLabel(m.createdAt)}</span>
+                </div>
+              )}
+              {m.id === firstUnreadId && (
+                <div className="new-divider">
+                  <span>New messages</span>
                 </div>
               )}
               <MessageItem

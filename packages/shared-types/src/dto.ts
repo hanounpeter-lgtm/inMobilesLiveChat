@@ -239,6 +239,39 @@ export const InvitePreview = z.object({
 });
 export type InvitePreview = z.infer<typeof InvitePreview>;
 
+// ---------- Unreads / notifications ----------
+export const UnreadState = z.object({
+  channelId: z.string().uuid(),
+  lastReadAt: z.string().datetime().nullable(),
+  lastReadMessageId: z.string().uuid().nullable(),
+  hasUnread: z.boolean(),
+  mentionCount: z.number().int(),
+});
+export type UnreadState = z.infer<typeof UnreadState>;
+
+export const MyUnreadsResponse = z.object({ unreads: z.array(UnreadState) });
+export type MyUnreadsResponse = z.infer<typeof MyUnreadsResponse>;
+
+export const MarkReadRequest = z.object({
+  messageId: z.string().uuid().optional(),
+});
+export type MarkReadRequest = z.infer<typeof MarkReadRequest>;
+
+export const NotificationDto = z.object({
+  id: z.string().uuid(),
+  type: z.enum(['mention', 'dm', 'thread_reply', 'channel_invite']),
+  channelId: z.string().uuid().nullable(),
+  messageId: z.string().uuid().nullable(),
+  actor: MessageAuthor.nullable(),
+  snippet: z.string(),
+  readAt: z.string().datetime().nullable(),
+  createdAt: z.string().datetime(),
+});
+export type NotificationDto = z.infer<typeof NotificationDto>;
+
+export const NotificationNewPayload = z.object({ notification: NotificationDto });
+export type NotificationNewPayload = z.infer<typeof NotificationNewPayload>;
+
 // ---------- Workspace invites / signup ----------
 export const CreateWorkspaceInvitesRequest = z.object({
   emails: z.array(z.string().email()).min(1).max(20),
