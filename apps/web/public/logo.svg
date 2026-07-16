@@ -1,13 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <defs>
-    <linearGradient id="g" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#8B5CF6"/>
-      <stop offset="1" stop-color="#5B21B6"/>
+    <linearGradient id="sig" x1="14" y1="12" x2="52" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF6A3D"/>
+      <stop offset="1" stop-color="#E8402A"/>
     </linearGradient>
   </defs>
-  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#g)"/>
-  <path d="M32 14c-10.5 0-19 7.2-19 16.1 0 5.1 2.8 9.6 7.2 12.6-.3 2.4-1.3 4.5-3 6.1-.5.5-.1 1.4.6 1.3 3.9-.5 7.1-2 9.5-3.8 1.5.3 3.1.5 4.7.5 10.5 0 19-7.2 19-16.7S42.5 14 32 14Z" fill="#fff"/>
-  <circle cx="23.5" cy="30.5" r="3.1" fill="#7C3AED"/>
-  <circle cx="32" cy="30.5" r="3.1" fill="#7C3AED"/>
-  <circle cx="40.5" cy="30.5" r="3.1" fill="#7C3AED"/>
+  <!-- ink tile -->
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="#181511"/>
+  <!-- signal burst: six rounded rays -->
+  <g fill="url(#sig)">
+    <rect x="29" y="8"  width="6" height="16" rx="3"/>
+    <rect x="29" y="40" width="6" height="16" rx="3"/>
+    <rect x="8"  y="29" width="16" height="6" rx="3"/>
+    <rect x="40" y="29" width="16" height="6" rx="3"/>
+    <rect x="13.5" y="13.5" width="14" height="6" rx="3" transform="rotate(45 20.5 16.5)"/>
+    <rect x="36.5" y="44.5" width="14" height="6" rx="3" transform="rotate(45 43.5 47.5)"/>
+    <rect x="36.5" y="13.5" width="14" height="6" rx="3" transform="rotate(-45 43.5 16.5)"/>
+    <rect x="13.5" y="44.5" width="14" height="6" rx="3" transform="rotate(-45 20.5 47.5)"/>
+  </g>
+  <circle cx="32" cy="32" r="7" fill="#F6F1E7"/>
 </svg>

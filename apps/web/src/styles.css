@@ -1,45 +1,53 @@
+/* inMobiles editorial identity — porcelain & ink, vermilion signal.
+   Display serif: Fraunces. UI sans: Figtree. */
 :root {
-  --bg: #fafafb;
-  --bg-raised: #ffffff;
-  --bg-hover: #f1f0f4;
-  --sidebar-bg: linear-gradient(180deg, #2b1b45 0%, #221238 100%);
-  --sidebar-text: #c9bedf;
-  --sidebar-active: #7c3aed;
+  --font-ui: 'Figtree', -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-mono: 'JetBrains Mono', Consolas, monospace;
+
+  --bg: #f6f3ec;
+  --bg-raised: #fffdf8;
+  --bg-hover: #eeeade;
+  --sidebar-bg: #181511;
+  --sidebar-text: #b9b2a4;
+  --sidebar-active: #e8402a;
   --sidebar-hover: rgb(255 255 255 / 7%);
-  --text: #1c1b21;
-  --text-muted: #6f6d78;
-  --border: #e6e4ec;
-  --accent: #7c3aed;
-  --accent-hover: #6d28d9;
-  --accent-soft: #ede9fe;
-  --accent-text: #ffffff;
-  --danger: #dc2f3f;
-  --online: #22a06b;
-  --code-bg: #f2f1f6;
-  --shadow-sm: 0 1px 2px rgb(24 16 46 / 6%);
-  --shadow-md: 0 4px 16px rgb(24 16 46 / 10%);
-  --shadow-lg: 0 12px 40px rgb(24 16 46 / 18%);
+  --text: #201c16;
+  --text-muted: #7d7668;
+  --border: #e2dccd;
+  --accent: #e8402a;
+  --accent-hover: #c9331f;
+  --accent-soft: #fbe9e4;
+  --accent-text: #fffdf8;
+  --danger: #c92c1a;
+  --online: #178069;
+  --code-bg: #efeadd;
+  --shadow-sm: 0 1px 2px rgb(50 40 20 / 7%);
+  --shadow-md: 0 5px 18px rgb(50 40 20 / 10%);
+  --shadow-lg: 0 14px 44px rgb(50 40 20 / 16%);
   --radius: 10px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #16151a;
-    --bg-raised: #1f1e25;
-    --bg-hover: #26242e;
-    --sidebar-bg: linear-gradient(180deg, #1c1028 0%, #150b20 100%);
-    --sidebar-text: #a99cc0;
-    --sidebar-active: #7c3aed;
-    --text: #eceaf1;
-    --text-muted: #928fa0;
-    --border: #322f3c;
-    --accent: #8b5cf6;
-    --accent-hover: #7c3aed;
-    --accent-soft: #2c2153;
-    --code-bg: #282631;
-    --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
-    --shadow-md: 0 4px 16px rgb(0 0 0 / 40%);
-    --shadow-lg: 0 12px 40px rgb(0 0 0 / 55%);
+    --bg: #15120e;
+    --bg-raised: #1d1913;
+    --bg-hover: #262119;
+    --sidebar-bg: #100d0a;
+    --sidebar-text: #a49c8c;
+    --sidebar-active: #e8402a;
+    --text: #ece6d9;
+    --text-muted: #948d7d;
+    --border: #322c22;
+    --accent: #ff6a4d;
+    --accent-hover: #e8402a;
+    --accent-soft: #3d221b;
+    --accent-text: #fffdf8;
+    --online: #2fae91;
+    --code-bg: #262119;
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 35%);
+    --shadow-md: 0 5px 18px rgb(0 0 0 / 45%);
+    --shadow-lg: 0 14px 44px rgb(0 0 0 / 60%);
   }
 }
 
@@ -55,12 +63,30 @@ body,
 }
 
 body {
-  font-family: -apple-system, 'Segoe UI Variable', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-ui);
   font-size: 15px;
   line-height: 1.45;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.modal-title,
+.workspace-name,
+.login-logo,
+.join-channel-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+code,
+pre,
+.invite-url {
+  font-family: var(--font-mono);
 }
 
 button {
@@ -219,7 +245,7 @@ button:active:not([disabled]) {
 .logo-mark {
   width: 44px;
   height: 44px;
-  filter: drop-shadow(0 2px 6px rgb(91 33 182 / 35%));
+  filter: drop-shadow(0 3px 8px rgb(232 64 42 / 25%));
 }
 
 .logo-mark.small {
@@ -645,12 +671,13 @@ button:active:not([disabled]) {
   width: 38px;
   height: 38px;
   flex-shrink: 0;
-  border-radius: 10px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-weight: 700;
+  color: #fffdf8;
+  font-family: var(--font-display);
+  font-weight: 600;
   font-size: 16px;
   box-shadow: var(--shadow-sm);
 }
@@ -889,8 +916,9 @@ button:active:not([disabled]) {
 }
 
 .search-snippet mark {
-  background: #fde047;
-  color: #422006;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  font-weight: 700;
   border-radius: 3px;
   padding: 0 2px;
 }
@@ -1071,7 +1099,7 @@ button:active:not([disabled]) {
   text-align: center;
   padding: 1px 6px;
   border-radius: 10px;
-  background: #e11d48;
+  background: var(--sidebar-active);
   color: #fff;
   font-size: 11.5px;
   font-weight: 800;
@@ -1096,7 +1124,7 @@ button:active:not([disabled]) {
   content: '';
   flex: 1;
   height: 1px;
-  background: #e11d48;
+  background: var(--accent);
 }
 
 .new-divider span {
@@ -1104,7 +1132,7 @@ button:active:not([disabled]) {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #e11d48;
+  color: var(--accent);
 }
 
 .mention {
@@ -1117,8 +1145,8 @@ button:active:not([disabled]) {
 }
 
 .mention-self {
-  background: #fbbf24;
-  color: #451a03;
+  background: var(--accent);
+  color: var(--accent-text);
 }
 
 .mention-popover {
