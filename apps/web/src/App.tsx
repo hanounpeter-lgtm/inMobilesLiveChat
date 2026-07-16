@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import AppShell from './pages/AppShell';
 import JoinPage from './pages/JoinPage';
 import SignupPage from './pages/SignupPage';
+import RegisterPage from './pages/RegisterPage';
 
 const REDIRECT_KEY = 'postLoginRedirect';
 
@@ -46,6 +47,10 @@ export default function App() {
       <Route path="/login" element={authed ? <PostLoginTarget /> : <LoginPage />} />
       <Route path="/join/:token" element={authed ? <JoinPage /> : <SaveRedirectAndLogin />} />
       <Route path="/signup/:token" element={<SignupPage />} />
+      <Route
+        path="/register"
+        element={authed ? <Navigate to="/" replace /> : <RegisterPage />}
+      />
       <Route path="/*" element={authed ? <AppShell /> : <Navigate to="/login" replace />} />
     </Routes>
   );

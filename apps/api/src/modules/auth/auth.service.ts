@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
@@ -24,6 +24,45 @@ export class AuthService {
   ) {
     const days = Number(config.get('REFRESH_TOKEN_TTL_DAYS', 30));
     this.refreshTtlMs = days * 24 * 60 * 60 * 1000;
+  }
+
+  /**
+   * Public self-signup (enabled while the team is small; flip
+   * ALLOW_PUBLIC_SIGNUP=false to force invite-only onboarding).
+   * Joins the workspace as a member plus every public channel.
+   */
+  async register(displayName: string, email: string, password: string) {
+    const normalized = email.toLowerCase();
+    const existing = await this.prisma.user.findUnique({ where: { email: normalized } });
+    if (existing && !existing.deletedAt) {
+      throw new ConflictException('An account with this email already exists — sign in instead');
+    }
+    const workspace = await this.prisma.workspace.findFirst();
+    if (!workspace) throw new UnauthorizedException('Workspace is not set up yet');
+
+    const passwordHash = await argon2.hash(password);
+    return this.prisma.$transaction(async (tx) => {
+      const user = existing
+        ? await tx.user.update({
+            where: { id: existing.id },
+            data: { displayName, passwordHash, deletedAt: null },
+          })
+        : await tx.user.create({ data: { email: normalized, displayName, passwordHash } });
+      await tx.workspaceMember.upsert({
+        where: { workspaceId_userId: { workspaceId: workspace.id, userId: user.id } },
+        update: {},
+        create: { workspaceId: workspace.id, userId: user.id, role: 'member' },
+      });
+      const publicChannels = await tx.channel.findMany({
+        where: { workspaceId: workspace.id, type: 'public', isArchived: false },
+        select: { id: true },
+      });
+      await tx.channelMember.createMany({
+        data: publicChannels.map((c) => ({ channelId: c.id, userId: user.id })),
+        skipDuplicates: true,
+      });
+      return user;
+    });
   }
 
   async validateCredentials(email: string, password: string) {

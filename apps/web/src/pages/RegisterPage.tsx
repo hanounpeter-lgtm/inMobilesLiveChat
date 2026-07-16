@@ -1,9 +1,12 @@
 import { FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
+import type { LoginResponse } from '@inmobiles/shared-types';
+import { api, setAccessToken } from '../lib/api';
+import { connectSocket } from '../lib/socket';
 import { useAuth } from '../lib/auth-store';
 
-export default function LoginPage() {
-  const login = useAuth((s) => s.login);
+export default function RegisterPage() {
+  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -14,10 +17,15 @@ export default function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      await login(email, password);
+      const res = await api<LoginResponse>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ displayName: displayName.trim(), email, password }),
+      });
+      setAccessToken(res.accessToken);
+      connectSocket(res.accessToken);
+      useAuth.setState({ user: res.user, status: 'authenticated' });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
+      setError(err instanceof Error ? err.message : 'Could not create your account');
       setBusy(false);
     }
   };
@@ -28,7 +36,18 @@ export default function LoginPage() {
         <h1 className="login-logo">
           in<span>Mobiles</span>
         </h1>
-        <p className="muted">Sign in to your workspace</p>
+        <p className="muted">Create your account</p>
+        <label>
+          Your name
+          <input
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="e.g. Maria Saleh"
+            autoFocus
+            required
+            maxLength={80}
+          />
+        </label>
         <label>
           Email
           <input
@@ -36,7 +55,6 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@inmobiles.com"
-            autoFocus
             required
           />
         </label>
@@ -46,16 +64,17 @@ export default function LoginPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
+            placeholder="At least 8 characters"
+            minLength={8}
             required
           />
         </label>
         {error && <div className="error-text">{error}</div>}
         <button type="submit" disabled={busy}>
-          {busy ? 'Signing in…' : 'Sign in'}
+          {busy ? 'Creating account…' : 'Create account'}
         </button>
         <p className="muted auth-switch">
-          New here? <Link to="/register">Create an account</Link>
+          Already have an account? <Link to="/login">Sign in</Link>
         </p>
       </form>
     </div>

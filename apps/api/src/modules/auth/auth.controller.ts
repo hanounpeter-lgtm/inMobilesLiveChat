@@ -1,14 +1,17 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
+  Get,
   HttpCode,
   Post,
   Req,
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
-import { LoginRequest, LoginResponse } from '@inmobiles/shared-types';
+import { LoginRequest, LoginResponse, RegisterRequest } from '@inmobiles/shared-types';
 import { AuthService } from './auth.service';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
 
@@ -16,7 +19,38 @@ const REFRESH_COOKIE = 'refresh_token';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  private readonly publicSignup: boolean;
+
+  constructor(
+    private readonly auth: AuthService,
+    config: ConfigService,
+  ) {
+    this.publicSignup = config.get<string>('ALLOW_PUBLIC_SIGNUP', 'true') !== 'false';
+  }
+
+  @Get('signup-availability')
+  signupAvailability() {
+    return { enabled: this.publicSignup };
+  }
+
+  @Post('register')
+  @HttpCode(200)
+  async register(
+    @Body(new ZodValidationPipe(RegisterRequest)) body: RegisterRequest,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<LoginResponse> {
+    if (!this.publicSignup) {
+      throw new ForbiddenException('Self-signup is disabled — ask an admin for an invite');
+    }
+    const user = await this.auth.register(body.displayName, body.email, body.password);
+    const { accessToken, refreshToken } = await this.auth.issueTokens(
+      user.id,
+      req.headers['user-agent'],
+    );
+    this.setRefreshCookie(res, refreshToken);
+    return { accessToken, user: await this.auth.getAuthUser(user.id) };
+  }
 
   private setRefreshCookie(res: Response, token: string) {
     res.cookie(REFRESH_COOKIE, token, {

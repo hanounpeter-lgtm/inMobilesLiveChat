@@ -23,6 +23,13 @@ export const LoginResponse = z.object({
 });
 export type LoginResponse = z.infer<typeof LoginResponse>;
 
+export const RegisterRequest = z.object({
+  displayName: z.string().min(1).max(80),
+  email: z.string().email(),
+  password: z.string().min(8).max(128),
+});
+export type RegisterRequest = z.infer<typeof RegisterRequest>;
+
 // ---------- Channels ----------
 export const ChannelType = z.enum(['public', 'private', 'dm', 'group_dm']);
 export type ChannelType = z.infer<typeof ChannelType>;

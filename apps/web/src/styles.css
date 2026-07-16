@@ -126,6 +126,17 @@ button {
   font-size: 13px;
 }
 
+.auth-switch {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+}
+
+.auth-switch a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 /* ---------- Shell ---------- */
 .app-shell {
   display: flex;
