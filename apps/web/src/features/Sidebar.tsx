@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ChannelSummary } from '@inmobiles/shared-types';
 import { api } from '../lib/api';
@@ -7,6 +7,7 @@ import { useChatStore } from '../lib/chat-store';
 import CreateChannelModal from './CreateChannelModal';
 import InvitePeopleModal from './InvitePeopleModal';
 import ActivityModal from './ActivityModal';
+import SearchModal from './SearchModal';
 import { useUnreads } from '../lib/unreads';
 
 interface DirectoryUser {
@@ -33,6 +34,19 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
   const [showArchived, setShowArchived] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+
+  // Ctrl/Cmd+K opens search from anywhere.
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setShowSearch((v) => !v);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
   const isAdmin = user?.role === 'owner' || user?.role === 'admin';
   const totalMentions = Object.values(unreads).reduce((sum, u) => sum + u.mentionCount, 0);
 
@@ -116,6 +130,11 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
 
       <div className="sidebar-scroll">
         <div className="sidebar-section">
+          <button className="channel-item" onClick={() => setShowSearch(true)}>
+            <span className="channel-hash">🔍</span>
+            <span className="channel-label">Search</span>
+            <span className="muted kbd-hint">Ctrl K</span>
+          </button>
           <button className="channel-item" onClick={() => setShowActivity(true)}>
             <span className="channel-hash">＠</span>
             <span className="channel-label">Activity</span>
@@ -189,6 +208,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
       {showCreate && <CreateChannelModal onClose={() => setShowCreate(false)} />}
       {showInvite && <InvitePeopleModal onClose={() => setShowInvite(false)} />}
       {showActivity && <ActivityModal onClose={() => setShowActivity(false)} />}
+      {showSearch && <SearchModal onClose={() => setShowSearch(false)} />}
     </aside>
   );
 }

@@ -328,6 +328,21 @@ export const AcceptSignupRequest = z.object({
 });
 export type AcceptSignupRequest = z.infer<typeof AcceptSignupRequest>;
 
+// ---------- Search ----------
+export const SearchResultDto = z.object({
+  messageId: z.string().uuid(),
+  channelId: z.string().uuid(),
+  channelName: z.string().nullable(),
+  channelType: ChannelType,
+  authorDisplayName: z.string(),
+  snippet: z.string(), // \x01…\x02 sentinel-delimited highlights
+  createdAt: z.string().datetime(),
+});
+export type SearchResultDto = z.infer<typeof SearchResultDto>;
+
+export const SearchResponse = z.object({ results: z.array(SearchResultDto) });
+export type SearchResponse = z.infer<typeof SearchResponse>;
+
 // ---------- GIFs ----------
 export const GifDto = z.object({
   id: z.string(),
