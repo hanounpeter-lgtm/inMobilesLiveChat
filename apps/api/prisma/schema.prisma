@@ -178,6 +178,7 @@ model Message {
   replyCount      Int       @default(0) @map("reply_count")
   lastReplyAt     DateTime? @map("last_reply_at") @db.Timestamptz()
   isEdited        Boolean   @default(false) @map("is_edited")
+  isPinned        Boolean   @default(false) @map("is_pinned")
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()

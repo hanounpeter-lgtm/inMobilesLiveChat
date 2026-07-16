@@ -12,6 +12,9 @@ interface ChatState {
   setCurrentCall: (call: JoinCallResponse | null) => void;
   detailsPanelOpen: boolean;
   setDetailsPanel: (open: boolean) => void;
+  /** Text queued for insertion into the composer (e.g. quote reply). */
+  composerInsert: string | null;
+  setComposerInsert: (text: string | null) => void;
   typingByChannel: Record<string, TypingUser[]>;
   onlineUserIds: Set<string>;
   lastSeenByChannel: Record<string, string>; // channelId -> ISO timestamp
@@ -27,6 +30,8 @@ export const useChatStore = create<ChatState>((set) => ({
   setCurrentCall: (call) => set({ currentCall: call }),
   detailsPanelOpen: false,
   setDetailsPanel: (open) => set({ detailsPanelOpen: open }),
+  composerInsert: null,
+  setComposerInsert: (text) => set({ composerInsert: text }),
   typingByChannel: {},
   onlineUserIds: new Set(),
   lastSeenByChannel: {},

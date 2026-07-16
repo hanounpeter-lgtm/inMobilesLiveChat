@@ -14,7 +14,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { EditMessageRequest, SendMessageRequest } from '@inmobiles/shared-types';
+import { EditMessageRequest, SendMessageRequest, ToggleReactionRequest } from '@inmobiles/shared-types';
 import { CurrentUserId } from '../../common/current-user.decorator';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -56,6 +56,28 @@ export class MessagesController {
   @Get('messages/:id/thread')
   async thread(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) id: string) {
     return { messages: await this.messages.listThread(id, userId) };
+  }
+
+  @Get('channels/:channelId/pins')
+  async pins(
+    @CurrentUserId() userId: string,
+    @Param('channelId', ParseUUIDPipe) channelId: string,
+  ) {
+    return { messages: await this.messages.listPins(channelId, userId) };
+  }
+
+  @Post('messages/:id/reactions')
+  toggleReaction(
+    @CurrentUserId() userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodValidationPipe(ToggleReactionRequest)) body: ToggleReactionRequest,
+  ) {
+    return this.messages.toggleReaction(id, userId, body.emoji);
+  }
+
+  @Post('messages/:id/pin')
+  togglePin(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.messages.togglePin(id, userId);
   }
 
   @Patch('messages/:id')

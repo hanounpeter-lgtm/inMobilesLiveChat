@@ -148,6 +148,14 @@ export const MessageAuthor = z.object({
 });
 export type MessageAuthor = z.infer<typeof MessageAuthor>;
 
+// Objective per-emoji membership — clients derive count and "did I react"
+// locally, so broadcast payloads are viewer-independent.
+export const ReactionGroup = z.object({
+  emoji: z.string(),
+  userIds: z.array(z.string().uuid()),
+});
+export type ReactionGroup = z.infer<typeof ReactionGroup>;
+
 export const MessageDto = z.object({
   id: z.string().uuid(),
   channelId: z.string().uuid(),
@@ -158,10 +166,17 @@ export const MessageDto = z.object({
   replyCount: z.number().int(),
   isEdited: z.boolean(),
   isDeleted: z.boolean(),
+  isPinned: z.boolean(),
+  reactions: z.array(ReactionGroup),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
 export type MessageDto = z.infer<typeof MessageDto>;
+
+export const ToggleReactionRequest = z.object({
+  emoji: z.string().min(1).max(16),
+});
+export type ToggleReactionRequest = z.infer<typeof ToggleReactionRequest>;
 
 export const SendMessageRequest = z.object({
   content: z.string().min(1).max(12000),

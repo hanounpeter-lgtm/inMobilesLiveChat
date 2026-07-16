@@ -79,9 +79,14 @@ export default function AppShell() {
         markSeen(message.channelId);
       }
     };
-    const onMessageUpdated = ({ message }: MessageNewPayload) => upsertMessage(queryClient, message);
-    const onMessageDeleted = ({ messageId, channelId }: MessageDeletedPayload) =>
+    const onMessageUpdated = ({ message }: MessageNewPayload) => {
+      upsertMessage(queryClient, message);
+      queryClient.invalidateQueries({ queryKey: ['pins', message.channelId] });
+    };
+    const onMessageDeleted = ({ messageId, channelId }: MessageDeletedPayload) => {
       removeMessage(queryClient, channelId, messageId);
+      queryClient.invalidateQueries({ queryKey: ['pins', channelId] });
+    };
     const onTyping = ({ channelId, users }: TypingUpdatePayload) => setTyping(channelId, users);
     const onPresence = ({ userId, status }: PresenceUpdatePayload) =>
       setPresence(userId, status === 'online');

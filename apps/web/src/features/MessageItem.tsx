@@ -34,6 +34,31 @@ function AudioMessage({ kind, attachmentId }: { kind: string; attachmentId: stri
 
 const timeFmt = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' });
 
+/** Reaction chips under a message; clicking toggles the caller's reaction. */
+function ReactionRow({ message, selfId }: { message: MessageDto; selfId?: string }) {
+  if (message.reactions.length === 0) return null;
+  const toggle = (emoji: string) => {
+    void api(`/messages/${message.id}/reactions`, {
+      method: 'POST',
+      body: JSON.stringify({ emoji }),
+    }).catch(() => undefined);
+  };
+  return (
+    <div className="reaction-row">
+      {message.reactions.map((r) => (
+        <button
+          key={r.emoji}
+          className={`reaction-chip ${selfId && r.userIds.includes(selfId) ? 'mine' : ''}`}
+          title={`${r.userIds.length} reaction${r.userIds.length === 1 ? '' : 's'}`}
+          onClick={() => toggle(r.emoji)}
+        >
+          {r.emoji} {r.userIds.length}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // Curated brand-adjacent palette — deterministic per user, no muddy hues.
 const AVATAR_COLORS = [
   '#7C3AED', // violet
@@ -165,7 +190,17 @@ export default function MessageItem({
           <div className="message-meta">
             <span className="author">{message.author.displayName}</span>
             <span className="timestamp">{timeFmt.format(new Date(message.createdAt))}</span>
+            {message.isPinned && (
+              <span className="pin-indicator" title="Pinned message">
+                📌
+              </span>
+            )}
           </div>
+        )}
+        {grouped && message.isPinned && (
+          <span className="pin-indicator grouped-pin" title="Pinned message">
+            📌
+          </span>
         )}
         {message.isDeleted ? (
           <div className="deleted muted">This message was deleted</div>
@@ -197,6 +232,7 @@ export default function MessageItem({
             );
           })()
         )}
+        {!message.isDeleted && <ReactionRow message={message} selfId={user?.id} />}
       </div>
       {own && !message.isDeleted && !pending && (
         <button className="message-action" title="Delete" onClick={onDelete}>

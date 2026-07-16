@@ -4,6 +4,7 @@ import { ClientEvents } from '@inmobiles/shared-types';
 import { api, apiUpload } from '../lib/api';
 import { getSocket } from '../lib/socket';
 import { useAuth } from '../lib/auth-store';
+import { useChatStore } from '../lib/chat-store';
 import StickerPicker from './StickerPicker';
 import GifPicker from './GifPicker';
 import { stickerContent, type Sticker } from './stickers';
@@ -94,6 +95,16 @@ export default function Composer({
     textareaRef.current?.focus();
   }, [channel.id]);
 
+  // Consume queued inserts (quote reply from the context menu).
+  const composerInsert = useChatStore((s) => s.composerInsert);
+  const setComposerInsert = useChatStore((s) => s.setComposerInsert);
+  useEffect(() => {
+    if (!composerInsert) return;
+    setValue((v) => (v ? `${v}\n${composerInsert}` : composerInsert));
+    setComposerInsert(null);
+    textareaRef.current?.focus();
+  }, [composerInsert, setComposerInsert]);
+
   const emitTyping = () => {
     const socket = getSocket();
     if (!socket) return;
@@ -127,6 +138,8 @@ export default function Composer({
       replyCount: 0,
       isEdited: false,
       isDeleted: false,
+      isPinned: false,
+      reactions: [],
       createdAt: now,
       updatedAt: now,
     });

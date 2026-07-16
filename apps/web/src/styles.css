@@ -661,6 +661,88 @@ textarea:focus {
   border-color: var(--danger);
 }
 
+/* ---------- Reactions / pins ---------- */
+.reaction-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.reaction-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 2px 9px;
+  font-size: 13px;
+}
+
+.reaction-chip:hover {
+  border-color: var(--accent);
+}
+
+.reaction-chip.mine {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.pin-indicator {
+  font-size: 11px;
+}
+
+.grouped-pin {
+  position: absolute;
+  right: 20px;
+  top: 4px;
+}
+
+.quick-reactions {
+  display: flex;
+  gap: 2px;
+  padding: 2px 4px 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.quick-reactions button {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  padding: 4px 6px;
+  border-radius: 7px;
+}
+
+.quick-reactions button:hover {
+  background: var(--bg-hover);
+  transform: scale(1.15);
+}
+
+.pin-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--bg);
+}
+
+.pin-card-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  margin-bottom: 4px;
+}
+
+.pin-card-content {
+  font-size: 13.5px;
+  overflow-wrap: break-word;
+}
+
 /* ---------- Context menu / inline edit ---------- */
 .context-menu {
   position: fixed;

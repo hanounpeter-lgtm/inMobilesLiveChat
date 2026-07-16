@@ -4,6 +4,7 @@ import type {
   ChannelMemberDto,
   ChannelSummary,
   InviteLinkResponse,
+  MessageDto,
   MyChannelSettingsRequest,
   NotifyLevel,
   UpdateChannelRequest,
@@ -13,7 +14,7 @@ import { useAuth } from '../lib/auth-store';
 import { useChatStore } from '../lib/chat-store';
 import { canManageChannel } from '../lib/permissions';
 
-type Tab = 'about' | 'members' | 'settings';
+type Tab = 'about' | 'members' | 'pins' | 'settings';
 
 const membersKey = (channelId: string) => ['channel-members', channelId] as const;
 
@@ -71,6 +72,9 @@ export default function ChannelDetailsPanel({ channel }: { channel: ChannelSumma
         <button className={tab === 'members' ? 'active' : ''} onClick={() => setTab('members')}>
           Members · {channel.memberCount}
         </button>
+        <button className={tab === 'pins' ? 'active' : ''} onClick={() => setTab('pins')}>
+          Pins
+        </button>
         {canManage && (
           <button
             className={tab === 'settings' ? 'active' : ''}
@@ -93,9 +97,56 @@ export default function ChannelDetailsPanel({ channel }: { channel: ChannelSumma
             onlineUserIds={onlineUserIds}
           />
         )}
+        {tab === 'pins' && <PinsTab channelId={channel.id} />}
         {tab === 'settings' && canManage && <SettingsTab channel={channel} />}
       </div>
     </aside>
+  );
+}
+
+// ---------- Pins ----------
+
+const pinTimeFmt = new Intl.DateTimeFormat(undefined, {
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+function pinSnippet(content: string): string {
+  const trimmed = content.trim();
+  if (/^\[sticker:/.test(trimmed)) return '😀 Sticker';
+  if (/^\[voice:/.test(trimmed)) return '🎤 Voice note';
+  if (/^\[recording:/.test(trimmed)) return '🎙 Call recording';
+  if (/^!\[GIF\]/.test(trimmed)) return '🖼 GIF';
+  return trimmed.length > 140 ? `${trimmed.slice(0, 140)}…` : trimmed;
+}
+
+function PinsTab({ channelId }: { channelId: string }) {
+  const pins = useQuery({
+    queryKey: ['pins', channelId],
+    queryFn: () => api<{ messages: MessageDto[] }>(`/channels/${channelId}/pins`),
+  });
+  const list = pins.data?.messages ?? [];
+
+  return (
+    <div className="tab-content">
+      {list.map((m) => (
+        <div key={m.id} className="pin-card">
+          <div className="pin-card-meta">
+            <strong>{m.author.displayName}</strong>
+            <span className="muted">{pinTimeFmt.format(new Date(m.createdAt))}</span>
+          </div>
+          <div className="pin-card-content">{pinSnippet(m.content)}</div>
+        </div>
+      ))}
+      {pins.isLoading && <div className="muted pad-sm">Loading pins…</div>}
+      {pins.isSuccess && list.length === 0 && (
+        <div className="muted pad-sm">
+          No pinned messages yet — right-click any message and choose "Pin message".
+        </div>
+      )}
+    </div>
   );
 }
 

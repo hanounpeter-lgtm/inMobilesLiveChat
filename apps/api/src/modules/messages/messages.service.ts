@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { randomUUID } from 'crypto';
 import type { MessageDto, MessagePage, SendMessageRequest } from '@inmobiles/shared-types';
 import { ServerEvents } from '@inmobiles/shared-types';
-import type { Message, User } from '@prisma/client';
+import type { Message, Prisma, User } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RealtimeService } from '../../gateway/realtime.service';
 import { ChannelsService } from '../channels/channels.service';
@@ -10,8 +10,14 @@ import { S3Service } from '../files/s3.service';
 
 const PAGE_SIZE = 50;
 
-type MessageWithAuthor = Message & {
+const messageInclude = {
+  author: { select: { id: true, displayName: true, avatarUrl: true } },
+  reactions: { select: { emoji: true, userId: true } },
+} satisfies Prisma.MessageInclude;
+
+type MessageHydrated = Message & {
   author: Pick<User, 'id' | 'displayName' | 'avatarUrl'>;
+  reactions: { emoji: string; userId: string }[];
 };
 
 const encodeCursor = (m: Message) =>
@@ -34,6 +40,97 @@ export class MessagesService {
     private readonly channels: ChannelsService,
     private readonly s3: S3Service,
   ) {}
+
+  private toDto(m: MessageHydrated): MessageDto {
+    const byEmoji = new Map<string, string[]>();
+    for (const r of m.reactions) {
+      const list = byEmoji.get(r.emoji) ?? [];
+      list.push(r.userId);
+      byEmoji.set(r.emoji, list);
+    }
+    return {
+      id: m.id,
+      channelId: m.channelId,
+      parentMessageId: m.parentMessageId,
+      content: m.deletedAt ? '' : m.content,
+      clientMsgId: m.clientMsgId,
+      author: {
+        id: m.author.id,
+        displayName: m.author.displayName,
+        avatarUrl: m.author.avatarUrl,
+      },
+      replyCount: m.replyCount,
+      isEdited: m.isEdited,
+      isDeleted: m.deletedAt !== null,
+      isPinned: m.isPinned,
+      reactions: [...byEmoji.entries()].map(([emoji, userIds]) => ({ emoji, userIds })),
+      createdAt: m.createdAt.toISOString(),
+      updatedAt: m.updatedAt.toISOString(),
+    };
+  }
+
+  private async hydrate(messageId: string): Promise<MessageHydrated> {
+    return this.prisma.message.findUniqueOrThrow({
+      where: { id: messageId },
+      include: messageInclude,
+    });
+  }
+
+  async send(channelId: string, userId: string, dto: SendMessageRequest): Promise<MessageDto> {
+    await this.channels.requirePostable(channelId, userId, !!dto.parentMessageId);
+
+    // Idempotency: same clientMsgId returns the already-persisted message.
+    const existing = await this.prisma.message.findUnique({
+      where: { channelId_clientMsgId: { channelId, clientMsgId: dto.clientMsgId } },
+      include: messageInclude,
+    });
+    if (existing) return this.toDto(existing);
+
+    if (dto.parentMessageId) {
+      const parent = await this.prisma.message.findUnique({ where: { id: dto.parentMessageId } });
+      if (!parent || parent.channelId !== channelId) {
+        throw new BadRequestException('Thread parent not found in this channel');
+      }
+      if (parent.parentMessageId) {
+        throw new BadRequestException('Threads are one level deep — reply to the thread parent');
+      }
+    }
+
+    const message = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.message.create({
+        data: {
+          channelId,
+          userId,
+          content: dto.content,
+          clientMsgId: dto.clientMsgId,
+          parentMessageId: dto.parentMessageId,
+        },
+        include: messageInclude,
+      });
+      await tx.channel.update({
+        where: { id: channelId },
+        data: { lastMessageAt: created.createdAt },
+      });
+      if (dto.parentMessageId) {
+        await tx.message.update({
+          where: { id: dto.parentMessageId },
+          data: { replyCount: { increment: 1 }, lastReplyAt: created.createdAt },
+        });
+      }
+      return created;
+    });
+
+    const messageDto = this.toDto(message);
+    if (dto.parentMessageId) {
+      this.realtime.toChannel(channelId, ServerEvents.ThreadReply, {
+        parentMessageId: dto.parentMessageId,
+        message: messageDto,
+      });
+    } else {
+      this.realtime.toChannel(channelId, ServerEvents.MessageNew, { message: messageDto });
+    }
+    return messageDto;
+  }
 
   /** Store a recorded voice note and post it as a playable message. */
   async sendVoiceNote(
@@ -74,82 +171,6 @@ export class MessagesService {
     return message;
   }
 
-  private toDto(m: MessageWithAuthor): MessageDto {
-    return {
-      id: m.id,
-      channelId: m.channelId,
-      parentMessageId: m.parentMessageId,
-      content: m.deletedAt ? '' : m.content,
-      clientMsgId: m.clientMsgId,
-      author: {
-        id: m.author.id,
-        displayName: m.author.displayName,
-        avatarUrl: m.author.avatarUrl,
-      },
-      replyCount: m.replyCount,
-      isEdited: m.isEdited,
-      isDeleted: m.deletedAt !== null,
-      createdAt: m.createdAt.toISOString(),
-      updatedAt: m.updatedAt.toISOString(),
-    };
-  }
-
-  async send(channelId: string, userId: string, dto: SendMessageRequest): Promise<MessageDto> {
-    await this.channels.requirePostable(channelId, userId, !!dto.parentMessageId);
-
-    // Idempotency: same clientMsgId returns the already-persisted message.
-    const existing = await this.prisma.message.findUnique({
-      where: { channelId_clientMsgId: { channelId, clientMsgId: dto.clientMsgId } },
-      include: { author: { select: { id: true, displayName: true, avatarUrl: true } } },
-    });
-    if (existing) return this.toDto(existing);
-
-    if (dto.parentMessageId) {
-      const parent = await this.prisma.message.findUnique({ where: { id: dto.parentMessageId } });
-      if (!parent || parent.channelId !== channelId) {
-        throw new BadRequestException('Thread parent not found in this channel');
-      }
-      if (parent.parentMessageId) {
-        throw new BadRequestException('Threads are one level deep — reply to the thread parent');
-      }
-    }
-
-    const message = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.message.create({
-        data: {
-          channelId,
-          userId,
-          content: dto.content,
-          clientMsgId: dto.clientMsgId,
-          parentMessageId: dto.parentMessageId,
-        },
-        include: { author: { select: { id: true, displayName: true, avatarUrl: true } } },
-      });
-      await tx.channel.update({
-        where: { id: channelId },
-        data: { lastMessageAt: created.createdAt },
-      });
-      if (dto.parentMessageId) {
-        await tx.message.update({
-          where: { id: dto.parentMessageId },
-          data: { replyCount: { increment: 1 }, lastReplyAt: created.createdAt },
-        });
-      }
-      return created;
-    });
-
-    const messageDto = this.toDto(message);
-    if (dto.parentMessageId) {
-      this.realtime.toChannel(channelId, ServerEvents.ThreadReply, {
-        parentMessageId: dto.parentMessageId,
-        message: messageDto,
-      });
-    } else {
-      this.realtime.toChannel(channelId, ServerEvents.MessageNew, { message: messageDto });
-    }
-    return messageDto;
-  }
-
   async list(channelId: string, userId: string, cursor?: string): Promise<MessagePage> {
     await this.channels.requireMembership(channelId, userId);
 
@@ -173,7 +194,7 @@ export class MessagesService {
       where,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: PAGE_SIZE + 1,
-      include: { author: { select: { id: true, displayName: true, avatarUrl: true } } },
+      include: messageInclude,
     });
 
     const hasMore = rows.length > PAGE_SIZE;
@@ -191,26 +212,72 @@ export class MessagesService {
     const rows = await this.prisma.message.findMany({
       where: { parentMessageId },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-      include: { author: { select: { id: true, displayName: true, avatarUrl: true } } },
+      include: messageInclude,
+    });
+    return rows.map((m) => this.toDto(m));
+  }
+
+  async listPins(channelId: string, userId: string): Promise<MessageDto[]> {
+    await this.channels.requireMembership(channelId, userId);
+    const rows = await this.prisma.message.findMany({
+      where: { channelId, isPinned: true, deletedAt: null },
+      orderBy: [{ createdAt: 'desc' }],
+      take: 100,
+      include: messageInclude,
     });
     return rows.map((m) => this.toDto(m));
   }
 
   async edit(messageId: string, userId: string, content: string): Promise<MessageDto> {
-    const message = await this.prisma.message.findUnique({
-      where: { id: messageId },
-      include: { author: { select: { id: true, displayName: true, avatarUrl: true } } },
-    });
+    const message = await this.prisma.message.findUnique({ where: { id: messageId } });
     if (!message || message.deletedAt) throw new NotFoundException('Message not found');
     if (message.userId !== userId) throw new ForbiddenException('You can only edit your own messages');
 
     const updated = await this.prisma.message.update({
       where: { id: messageId },
       data: { content, isEdited: true },
-      include: { author: { select: { id: true, displayName: true, avatarUrl: true } } },
+      include: messageInclude,
     });
     const dto = this.toDto(updated);
     this.realtime.toChannel(updated.channelId, ServerEvents.MessageUpdated, { message: dto });
+    return dto;
+  }
+
+  /** Add or remove the caller's reaction; broadcasts the fresh message. */
+  async toggleReaction(messageId: string, userId: string, emoji: string): Promise<MessageDto> {
+    const message = await this.prisma.message.findUnique({ where: { id: messageId } });
+    if (!message || message.deletedAt) throw new NotFoundException('Message not found');
+    await this.channels.requireMembership(message.channelId, userId);
+
+    const existing = await this.prisma.reaction.findUnique({
+      where: { messageId_userId_emoji: { messageId, userId, emoji } },
+    });
+    if (existing) {
+      await this.prisma.reaction.delete({
+        where: { messageId_userId_emoji: { messageId, userId, emoji } },
+      });
+    } else {
+      await this.prisma.reaction.create({ data: { messageId, userId, emoji } });
+    }
+
+    const dto = this.toDto(await this.hydrate(messageId));
+    this.realtime.toChannel(message.channelId, ServerEvents.MessageUpdated, { message: dto });
+    return dto;
+  }
+
+  /** Any channel member can pin/unpin (Slack semantics). */
+  async togglePin(messageId: string, userId: string): Promise<MessageDto> {
+    const message = await this.prisma.message.findUnique({ where: { id: messageId } });
+    if (!message || message.deletedAt) throw new NotFoundException('Message not found');
+    await this.channels.requireMembership(message.channelId, userId);
+
+    const updated = await this.prisma.message.update({
+      where: { id: messageId },
+      data: { isPinned: !message.isPinned },
+      include: messageInclude,
+    });
+    const dto = this.toDto(updated);
+    this.realtime.toChannel(message.channelId, ServerEvents.MessageUpdated, { message: dto });
     return dto;
   }
 
@@ -226,7 +293,7 @@ export class MessagesService {
 
     await this.prisma.message.update({
       where: { id: messageId },
-      data: { deletedAt: new Date() },
+      data: { deletedAt: new Date(), isPinned: false },
     });
     this.realtime.toChannel(message.channelId, ServerEvents.MessageDeleted, {
       messageId,
