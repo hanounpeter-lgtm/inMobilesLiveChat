@@ -9,11 +9,16 @@ import { upsertMessage } from '../lib/message-cache';
 import { formatMentions, MENTION_HREF_PREFIX } from '../lib/mention-format';
 import { useChatStore } from '../lib/chat-store';
 import { IconHeadphones, IconMessageCircle, IconMic, IconPin, IconX } from '../components/icons';
+import AudioPlayer from '../components/AudioPlayer';
 import { useUsersById } from '../lib/users';
 import { parseSticker, stickerUrl } from './stickers';
 import AttachmentList from './Attachments';
 
 const AUDIO_MESSAGE_RE = /^\[(recording|voice):([0-9a-f-]{36})\]$/;
+
+// Server-generated call/recording notices render as quiet log lines.
+const SYSTEM_LINE_RE =
+  /^(Started a (video )?call|Call ended · \d+ min|Recording stopped|.{1,80} started recording this call)$/;
 
 /** Audio message (call recording or voice note): resolves a short-lived
  * playback URL and renders a labeled player. */
@@ -35,7 +40,7 @@ function AudioMessage({ kind, attachmentId }: { kind: string; attachmentId: stri
       <span className="recording-label">
         {icon} {label}
       </span>
-      {url ? <audio controls preload="metadata" src={url} /> : <span className="muted">Loading…</span>}
+      {url ? <AudioPlayer src={url} /> : <span className="muted">Loading…</span>}
     </div>
   );
 }
@@ -228,6 +233,9 @@ export default function MessageItem({
             const audioMatch = AUDIO_MESSAGE_RE.exec(message.content.trim());
             if (audioMatch) {
               return <AudioMessage kind={audioMatch[1]} attachmentId={audioMatch[2]} />;
+            }
+            if (SYSTEM_LINE_RE.test(message.content.trim())) {
+              return <div className="system-line">{message.content.trim()}</div>;
             }
             const sticker = parseSticker(message.content);
             if (sticker) {

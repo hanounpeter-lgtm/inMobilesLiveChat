@@ -148,6 +148,19 @@ export const IconFile = (p: IconProps) => (
   </svg>
 );
 
+export const IconPlay = (p: IconProps) => (
+  <svg {...base(p)} fill="currentColor" stroke="none">
+    <polygon points="6 3 20 12 6 21 6 3" />
+  </svg>
+);
+
+export const IconPause = (p: IconProps) => (
+  <svg {...base(p)} fill="currentColor" stroke="none">
+    <rect x="5" y="4" width="4.5" height="16" rx="1" />
+    <rect x="14.5" y="4" width="4.5" height="16" rx="1" />
+  </svg>
+);
+
 export const IconHeadphones = (p: IconProps) => (
   <svg {...base(p)}>
     <path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Zm18 0h-3a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-5Z" />
