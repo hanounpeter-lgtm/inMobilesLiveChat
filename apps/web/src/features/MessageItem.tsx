@@ -2,13 +2,14 @@ import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import type { FileUrlResponse, MessageDto } from '@inmobiles/shared-types';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth-store';
 import { upsertMessage } from '../lib/message-cache';
 import { formatMentions, MENTION_HREF_PREFIX } from '../lib/mention-format';
 import { useChatStore } from '../lib/chat-store';
-import { SYSTEM_LINE_RE } from '../lib/message-utils';
+import { preserveBlankLines, SYSTEM_LINE_RE } from '../lib/message-utils';
 import { IconHeadphones, IconMessageCircle, IconMic, IconPin, IconX } from '../components/icons';
 import AudioPlayer from '../components/AudioPlayer';
 import { useUsersById } from '../lib/users';
@@ -257,7 +258,7 @@ export default function MessageItem({
                     Mention tokens are pre-processed into mention:// links and
                     rendered as chips by the custom anchor component. */}
                 <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
+                  remarkPlugins={[remarkGfm, remarkBreaks]}
                   // Keep the default sanitizer but let our mention:// scheme
                   // through — it renders as a chip, never as a real link.
                   urlTransform={(url) =>
@@ -282,7 +283,7 @@ export default function MessageItem({
                     },
                   }}
                 >
-                  {formatMentions(message.content, usersById)}
+                  {preserveBlankLines(formatMentions(message.content, usersById))}
                 </ReactMarkdown>
                 {message.isEdited && <span className="edited muted">(edited)</span>}
               </div>

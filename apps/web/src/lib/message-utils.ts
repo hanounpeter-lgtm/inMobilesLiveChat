@@ -18,6 +18,27 @@ export function systemEventText(m: MessageDto): string {
   return content;
 }
 
+/**
+ * Markdown collapses runs of blank lines; chat should render them literally.
+ * Turn each blank line into a non-breaking-space line (remark-breaks then
+ * emits one <br> per line) — but never inside fenced code blocks, where
+ * blank lines are real content.
+ */
+export function preserveBlankLines(content: string): string {
+  let inFence = false;
+  return content
+    .split('\n')
+    .map((line) => {
+      if (/^\s*(```|~~~)/.test(line)) {
+        inFence = !inFence;
+        return line;
+      }
+      if (!inFence && line.trim() === '') return String.fromCharCode(160); // NBSP - whitespace-only lines are still blank to markdown
+      return line;
+    })
+    .join('\n');
+}
+
 /** Group consecutive messages from the same author within 5 minutes. */
 export function shouldGroup(prev: MessageDto | undefined, curr: MessageDto): boolean {
   if (!prev) return false;
