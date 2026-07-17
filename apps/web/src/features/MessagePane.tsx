@@ -17,7 +17,7 @@ import CallBanner from './CallBanner';
 import MessageContextMenu, { type MenuState } from './MessageContextMenu';
 import { useMarkRead } from '../lib/use-mark-read';
 import { useUnreads } from '../lib/unreads';
-import { shouldGroup } from '../lib/message-utils';
+import { isSystemEvent, shouldGroup, systemEventText } from '../lib/message-utils';
 import { IconInfo, IconLock, IconPhone, IconStar, IconVideo } from '../components/icons';
 
 // Stable fallback: returning a fresh [] from the zustand selector would make
@@ -256,15 +256,21 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
                   <span>New messages</span>
                 </div>
               )}
-              <MessageItem
-                message={m}
-                grouped={!newDay && shouldGroup(messages[i - 1], m)}
-                onContextMenu={(e, message) =>
-                  setContextMenu({ x: e.clientX, y: e.clientY, message })
-                }
-                isEditing={editingId === m.id}
-                onEditDone={() => setEditingId(null)}
-              />
+              {isSystemEvent(m) ? (
+                <div className="event-line">
+                  <span>{systemEventText(m)}</span>
+                </div>
+              ) : (
+                <MessageItem
+                  message={m}
+                  grouped={!newDay && shouldGroup(messages[i - 1], m)}
+                  onContextMenu={(e, message) =>
+                    setContextMenu({ x: e.clientX, y: e.clientY, message })
+                  }
+                  isEditing={editingId === m.id}
+                  onEditDone={() => setEditingId(null)}
+                />
+              )}
             </div>
           );
         })}

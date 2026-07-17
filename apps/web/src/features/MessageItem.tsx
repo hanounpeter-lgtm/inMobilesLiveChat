@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth-store';
 import { upsertMessage } from '../lib/message-cache';
 import { formatMentions, MENTION_HREF_PREFIX } from '../lib/mention-format';
 import { useChatStore } from '../lib/chat-store';
+import { SYSTEM_LINE_RE } from '../lib/message-utils';
 import { IconHeadphones, IconMessageCircle, IconMic, IconPin, IconX } from '../components/icons';
 import AudioPlayer from '../components/AudioPlayer';
 import { useUsersById } from '../lib/users';
@@ -15,10 +16,6 @@ import { parseSticker, stickerUrl } from './stickers';
 import AttachmentList from './Attachments';
 
 const AUDIO_MESSAGE_RE = /^\[(recording|voice):([0-9a-f-]{36})\]$/;
-
-// Server-generated call/recording notices render as quiet log lines.
-const SYSTEM_LINE_RE =
-  /^(Started a (video )?call|Call ended · \d+ min|Recording stopped|.{1,80} started recording this call)$/;
 
 /** Audio message (call recording or voice note): resolves a short-lived
  * playback URL and renders a labeled player. */
@@ -235,6 +232,8 @@ export default function MessageItem({
               return <AudioMessage kind={audioMatch[1]} attachmentId={audioMatch[2]} />;
             }
             if (SYSTEM_LINE_RE.test(message.content.trim())) {
+              // Fallback rendering (pins tab, threads) — the channel view
+              // renders these as centered event lines instead.
               return <div className="system-line">{message.content.trim()}</div>;
             }
             const sticker = parseSticker(message.content);
