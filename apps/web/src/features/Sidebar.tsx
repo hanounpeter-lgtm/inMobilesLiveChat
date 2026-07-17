@@ -9,6 +9,7 @@ import InvitePeopleModal from './InvitePeopleModal';
 import ActivityModal from './ActivityModal';
 import SearchModal from './SearchModal';
 import ProfileModal from './ProfileModal';
+import { TimeclockWidget } from './Timeclock';
 import { useUnreads } from '../lib/unreads';
 import {
   IconAt,
@@ -211,6 +212,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
         )}
       </div>
 
+      <TimeclockWidget />
       <div className="sidebar-footer">
         <button className="me" title="Edit your profile" onClick={() => setShowProfile(true)}>
           {user?.avatarUrl ? (

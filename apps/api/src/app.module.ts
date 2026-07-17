@@ -11,6 +11,7 @@ import { FilesModule } from './modules/files/files.module';
 import { GifsModule } from './modules/gifs/gifs.module';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { TimeclockModule } from './modules/timeclock/timeclock.module';
 import { SearchModule } from './modules/search/search.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { HealthController } from './health.controller';
@@ -35,6 +36,7 @@ import { HealthController } from './health.controller';
     WorkspacesModule,
     NotificationsModule,
     SearchModule,
+    TimeclockModule,
   ],
   controllers: [HealthController],
 })

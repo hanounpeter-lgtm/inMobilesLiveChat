@@ -295,6 +295,37 @@ export const InvitePreview = z.object({
 });
 export type InvitePreview = z.infer<typeof InvitePreview>;
 
+// ---------- Time clock ----------
+export const ClockStatus = z.enum(['off', 'working', 'break']);
+export type ClockStatus = z.infer<typeof ClockStatus>;
+
+export const ClockAction = z.enum(['clock-in', 'break-start', 'break-end', 'clock-out']);
+export type ClockAction = z.infer<typeof ClockAction>;
+
+export const TimeclockMe = z.object({
+  status: ClockStatus,
+  since: z.string().datetime().nullable(),
+  workedMsToday: z.number().int(),
+  breakMsToday: z.number().int(),
+});
+export type TimeclockMe = z.infer<typeof TimeclockMe>;
+
+export const TimeclockTeamEntry = z.object({
+  userId: z.string().uuid(),
+  displayName: z.string(),
+  avatarUrl: z.string().nullable(),
+  status: ClockStatus,
+  since: z.string().datetime().nullable(),
+});
+export type TimeclockTeamEntry = z.infer<typeof TimeclockTeamEntry>;
+
+export const TimeclockUpdatePayload = z.object({
+  userId: z.string().uuid(),
+  status: ClockStatus,
+  since: z.string().datetime().nullable(),
+});
+export type TimeclockUpdatePayload = z.infer<typeof TimeclockUpdatePayload>;
+
 // ---------- Unreads / notifications ----------
 export const UnreadState = z.object({
   channelId: z.string().uuid(),

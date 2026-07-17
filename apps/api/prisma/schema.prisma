@@ -49,6 +49,13 @@ enum PostingPolicy {
   admins_only
 }
 
+enum ClockKind {
+  clock_in
+  break_start
+  break_end
+  clock_out
+}
+
 model User {
   id           String    @id @default(uuid(7)) @db.Uuid
   email        String    @unique
@@ -74,6 +81,7 @@ model User {
   startedCalls         Call[]
   channelInvites       ChannelInvite[]
   workspaceInvites     WorkspaceInvite[]
+  clockEvents          WorkClockEvent[]
 
   @@map("users")
 }
@@ -285,6 +293,19 @@ model Call {
 
   @@index([channelId, endedAt])
   @@map("calls")
+}
+
+model WorkClockEvent {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  kind        ClockKind
+  at          DateTime  @default(now()) @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, at(sort: Desc)])
+  @@map("work_clock_events")
 }
 
 model ChannelInvite {
