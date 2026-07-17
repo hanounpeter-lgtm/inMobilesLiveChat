@@ -1778,11 +1778,7 @@ button:active:not([disabled]) {
   border-radius: 50%;
   background: var(--accent);
   color: var(--accent-text);
-  padding-left: 2px;
-}
-
-.audio-play[data-playing='true'] {
-  padding-left: 0;
+  padding: 0;
 }
 
 .audio-play:hover {
