@@ -1,22 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <defs>
-    <linearGradient id="sig" x1="14" y1="12" x2="52" y2="54" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FF6A3D"/>
-      <stop offset="1" stop-color="#E8402A"/>
-    </linearGradient>
-  </defs>
-  <!-- ink tile -->
-  <rect x="2" y="2" width="60" height="60" rx="16" fill="#181511"/>
-  <!-- signal burst: six rounded rays -->
-  <g fill="url(#sig)">
-    <rect x="29" y="8"  width="6" height="16" rx="3"/>
-    <rect x="29" y="40" width="6" height="16" rx="3"/>
-    <rect x="8"  y="29" width="16" height="6" rx="3"/>
-    <rect x="40" y="29" width="16" height="6" rx="3"/>
-    <rect x="13.5" y="13.5" width="14" height="6" rx="3" transform="rotate(45 20.5 16.5)"/>
-    <rect x="36.5" y="44.5" width="14" height="6" rx="3" transform="rotate(45 43.5 47.5)"/>
-    <rect x="36.5" y="13.5" width="14" height="6" rx="3" transform="rotate(-45 43.5 16.5)"/>
-    <rect x="13.5" y="44.5" width="14" height="6" rx="3" transform="rotate(-45 20.5 47.5)"/>
-  </g>
-  <circle cx="32" cy="32" r="7" fill="#F6F1E7"/>
+  <!-- pine tile -->
+  <rect x="2" y="2" width="60" height="60" rx="10" fill="#1e3229"/>
+  <!-- leaf -->
+  <path d="M45 15C31 16 20 24 18.5 39c-.4 4 .8 7.5 2 9.5 1.6-9 6-17 13.5-22.5C27 32.5 22.7 41 22 49.5c2.6 1 6.3 1.4 9.5.7C45 47 48.5 32 45 15Z" fill="#f2f7f0"/>
+  <!-- gold vein -->
+  <path d="M40.5 20.5C33 27 26.5 36.5 23.5 47.5" stroke="#b7791f" stroke-width="2.4" stroke-linecap="round"/>
 </svg>

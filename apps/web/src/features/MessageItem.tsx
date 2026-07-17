@@ -67,18 +67,18 @@ function ReactionRow({ message, selfId }: { message: MessageDto; selfId?: string
   );
 }
 
-// Warm editorial palette — deterministic per user, no greens or muddy hues.
+// Forest Ledger palette — earthy, deterministic per user.
 const AVATAR_COLORS = [
-  '#B0442C', // rust
-  '#C2543A', // terracotta
-  '#B77818', // ochre
-  '#90343F', // burgundy
-  '#C25E7D', // rose
-  '#8E4585', // plum
-  '#5A5FAE', // indigo
-  '#4A6FA5', // slate blue
-  '#17756B', // deep teal
-  '#3E5C76', // steel
+  '#2E6B4F', // pine
+  '#B7791F', // gold ochre
+  '#A14E2C', // rust
+  '#7C3A3F', // burgundy
+  '#46647D', // slate blue
+  '#6D4A74', // plum
+  '#2F6F6A', // teal
+  '#6F5233', // walnut
+  '#B0663A', // terracotta
+  '#5C6B3C', // olive
 ];
 
 function avatarColor(id: string): string {
