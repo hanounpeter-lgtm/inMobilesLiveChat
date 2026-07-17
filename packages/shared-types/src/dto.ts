@@ -23,6 +23,24 @@ export const LoginResponse = z.object({
 });
 export type LoginResponse = z.infer<typeof LoginResponse>;
 
+export const UpdateProfileRequest = z
+  .object({
+    displayName: z.string().min(1).max(80).optional(),
+    statusText: z.string().max(100).nullable().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'Nothing to update');
+export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequest>;
+
+export const UserUpdatedPayload = z.object({
+  user: z.object({
+    id: z.string().uuid(),
+    displayName: z.string(),
+    avatarUrl: z.string().nullable(),
+    statusText: z.string().nullable(),
+  }),
+});
+export type UserUpdatedPayload = z.infer<typeof UserUpdatedPayload>;
+
 export const RegisterRequest = z.object({
   displayName: z.string().min(1).max(80),
   email: z.string().email(),

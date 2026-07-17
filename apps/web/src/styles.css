@@ -506,6 +506,80 @@ button:active:not([disabled]) {
   color: #fff;
   font-weight: 600;
   font-size: 14px;
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-family: inherit;
+}
+
+.me:hover {
+  background: var(--sidebar-hover);
+}
+
+.me-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  object-fit: cover;
+}
+
+/* ---------- Profile ---------- */
+.profile-modal {
+  width: 420px;
+}
+
+.avatar-editor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar-preview {
+  width: 96px;
+  height: 96px;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: var(--shadow-md);
+}
+
+.avatar-letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 600;
+}
+
+.camera-view {
+  width: 220px;
+  height: 165px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #000;
+  box-shadow: var(--shadow-md);
+}
+
+.avatar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.avatar-actions .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.avatar-img {
+  object-fit: cover;
+  background: var(--bg-hover);
 }
 
 .archived-toggle {

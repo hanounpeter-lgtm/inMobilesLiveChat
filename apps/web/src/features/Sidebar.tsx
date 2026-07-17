@@ -8,6 +8,7 @@ import CreateChannelModal from './CreateChannelModal';
 import InvitePeopleModal from './InvitePeopleModal';
 import ActivityModal from './ActivityModal';
 import SearchModal from './SearchModal';
+import ProfileModal from './ProfileModal';
 import { useUnreads } from '../lib/unreads';
 import {
   IconAt,
@@ -43,6 +44,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
   const [showInvite, setShowInvite] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   // Ctrl/Cmd+K opens search from anywhere.
   useEffect(() => {
@@ -210,10 +212,14 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
       </div>
 
       <div className="sidebar-footer">
-        <div className="me">
-          <span className="presence-dot online" />
+        <button className="me" title="Edit your profile" onClick={() => setShowProfile(true)}>
+          {user?.avatarUrl ? (
+            <img className="me-avatar" src={user.avatarUrl} alt="" />
+          ) : (
+            <span className="presence-dot online" />
+          )}
           <span className="me-name">{user?.displayName}</span>
-        </div>
+        </button>
         <button className="icon-btn" title="Sign out" onClick={() => void logout()}>
           <IconLogOut size={15} />
         </button>
@@ -223,6 +229,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
       {showInvite && <InvitePeopleModal onClose={() => setShowInvite(false)} />}
       {showActivity && <ActivityModal onClose={() => setShowActivity(false)} />}
       {showSearch && <SearchModal onClose={() => setShowSearch(false)} />}
+      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
     </aside>
   );
 }

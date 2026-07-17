@@ -198,9 +198,13 @@ export default function MessageItem({
       }
     >
       {!grouped ? (
-        <div className="avatar" style={{ background: avatarColor(message.author.id) }}>
-          {message.author.displayName.slice(0, 1).toUpperCase()}
-        </div>
+        message.author.avatarUrl ? (
+          <img className="avatar avatar-img" src={message.author.avatarUrl} alt="" />
+        ) : (
+          <div className="avatar" style={{ background: avatarColor(message.author.id) }}>
+            {message.author.displayName.slice(0, 1).toUpperCase()}
+          </div>
+        )
       ) : (
         <div className="avatar-spacer" />
       )}

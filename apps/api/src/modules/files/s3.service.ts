@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import type { Readable } from 'stream';
 
 @Injectable()
 export class S3Service {
@@ -25,6 +26,18 @@ export class S3Service {
     await this.client.send(
       new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: body, ContentType: contentType }),
     );
+  }
+
+  async getObject(key: string): Promise<{ body: Readable; contentType: string }> {
+    const res = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    return {
+      body: res.Body as Readable,
+      contentType: res.ContentType ?? 'application/octet-stream',
+    };
+  }
+
+  async deleteObject(key: string) {
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 
   presignGet(key: string, expiresInSeconds = 3600): Promise<string> {

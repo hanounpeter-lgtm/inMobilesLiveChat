@@ -161,6 +161,14 @@ export default function AppShell() {
     const onCallEnded = ({ channelId }: CallEndedPayload) =>
       queryClient.setQueryData(['call', channelId], { call: null });
     const onUnreadUpdate = (state: UnreadState) => applyUnreadUpdate(queryClient, state);
+    const onUserUpdated = () => {
+      // Names/avatars are denormalized into many caches — refetch them.
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      queryClient.invalidateQueries({ queryKey: ['channel-members'] });
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      queryClient.invalidateQueries({ queryKey: ['thread'] });
+    };
     const onNotificationNew = () =>
       queryClient.invalidateQueries({ queryKey: ['activity'] });
     const onCallRecording = (payload: { channelId: string; isRecording: boolean }) =>
@@ -185,6 +193,7 @@ export default function AppShell() {
     socket.on(ServerEvents.CallEnded, onCallEnded);
     socket.on(ServerEvents.CallRecording, onCallRecording);
     socket.on(ServerEvents.UnreadUpdate, onUnreadUpdate);
+    socket.on(ServerEvents.UserUpdated, onUserUpdated);
     socket.on(ServerEvents.NotificationNew, onNotificationNew);
 
     // Reconnect recovery: REST is the source of truth.
@@ -212,6 +221,7 @@ export default function AppShell() {
       socket.off(ServerEvents.CallEnded, onCallEnded);
       socket.off(ServerEvents.CallRecording, onCallRecording);
       socket.off(ServerEvents.UnreadUpdate, onUnreadUpdate);
+      socket.off(ServerEvents.UserUpdated, onUserUpdated);
       socket.off(ServerEvents.NotificationNew, onNotificationNew);
       socket.io.off('reconnect', onReconnect);
     };
