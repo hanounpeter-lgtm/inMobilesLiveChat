@@ -63,11 +63,13 @@ export class WorkspaceInvitesService {
     userId: string,
     emails: string[],
     role: 'member' | 'admin',
-  ): Promise<{ invites: WorkspaceInviteDto[]; skipped: string[] }> {
+  ): Promise<{ invites: WorkspaceInviteDto[]; skipped: string[]; invalid: string[] }> {
     const membership = await this.requireAdmin(userId);
     const inviter = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
 
-    const normalized = Array.from(new Set(emails.map((e) => e.toLowerCase())));
+    const all = Array.from(new Set(emails.map((e) => e.toLowerCase())));
+    const invalid = all.filter((e) => !this.auth.isEmailDomainAllowed(e));
+    const normalized = all.filter((e) => this.auth.isEmailDomainAllowed(e));
     const existingUsers = await this.prisma.user.findMany({
       where: { email: { in: normalized }, deletedAt: null },
       select: { email: true },
@@ -111,7 +113,7 @@ export class WorkspaceInvitesService {
       );
       invites.push(this.toDto(invite, inviter.displayName));
     }
-    return { invites, skipped };
+    return { invites, skipped, invalid };
   }
 
   async listPending(userId: string): Promise<WorkspaceInviteDto[]> {
@@ -170,6 +172,12 @@ export class WorkspaceInvitesService {
   /** Create the account, join workspace + public channels, and log them in. */
   async accept(token: string, dto: AcceptSignupRequest, userAgent?: string) {
     const invite = await this.findValidInvite(token);
+    // Covers invites minted before the domain policy existed.
+    if (!this.auth.isEmailDomainAllowed(invite.email)) {
+      throw new BadRequestException(
+        `Only @${this.auth.emailDomain} email addresses can create an account`,
+      );
+    }
 
     const existing = await this.prisma.user.findUnique({ where: { email: invite.email } });
     if (existing && !existing.deletedAt) {

@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
@@ -16,6 +21,7 @@ const sha256 = (value: string) => createHash('sha256').update(value).digest('hex
 @Injectable()
 export class AuthService {
   private readonly refreshTtlMs: number;
+  private readonly allowedDomain: string;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -24,6 +30,19 @@ export class AuthService {
   ) {
     const days = Number(config.get('REFRESH_TOKEN_TTL_DAYS', 30));
     this.refreshTtlMs = days * 24 * 60 * 60 * 1000;
+    this.allowedDomain = (config.get<string>('ALLOWED_EMAIL_DOMAIN', 'inmobiles.com') ?? '')
+      .trim()
+      .toLowerCase();
+  }
+
+  /** Company policy: accounts must use the workspace email domain. */
+  isEmailDomainAllowed(email: string): boolean {
+    if (!this.allowedDomain) return true;
+    return email.toLowerCase().endsWith(`@${this.allowedDomain}`);
+  }
+
+  get emailDomain(): string {
+    return this.allowedDomain;
   }
 
   /**
@@ -33,6 +52,11 @@ export class AuthService {
    */
   async register(displayName: string, email: string, password: string) {
     const normalized = email.toLowerCase();
+    if (!this.isEmailDomainAllowed(normalized)) {
+      throw new BadRequestException(
+        `Only @${this.allowedDomain} email addresses can create an account`,
+      );
+    }
     const existing = await this.prisma.user.findUnique({ where: { email: normalized } });
     if (existing && !existing.deletedAt) {
       throw new ConflictException('An account with this email already exists — sign in instead');

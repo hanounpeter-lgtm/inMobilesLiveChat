@@ -26,16 +26,21 @@ export default function InvitePeopleModal({ onClose }: { onClose: () => void }) 
 
   const create = useMutation({
     mutationFn: (list: string[]) =>
-      api<{ invites: WorkspaceInviteDto[]; skipped: string[] }>('/workspace/invites', {
-        method: 'POST',
-        body: JSON.stringify({ emails: list, role }),
-      }),
+      api<{ invites: WorkspaceInviteDto[]; skipped: string[]; invalid: string[] }>(
+        '/workspace/invites',
+        {
+          method: 'POST',
+          body: JSON.stringify({ emails: list, role }),
+        },
+      ),
     onSuccess: (res) => {
       setEmails('');
       setError(null);
       const parts = [];
       if (res.invites.length > 0) parts.push(`${res.invites.length} invite(s) sent`);
       if (res.skipped.length > 0) parts.push(`already have accounts: ${res.skipped.join(', ')}`);
+      if ((res.invalid?.length ?? 0) > 0)
+        parts.push(`not @inmobiles.com, skipped: ${res.invalid.join(', ')}`);
       setNotice(parts.join(' · '));
       void queryClient.invalidateQueries({ queryKey: ['workspace-invites'] });
     },

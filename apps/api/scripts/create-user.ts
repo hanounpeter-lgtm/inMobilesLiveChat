@@ -16,6 +16,11 @@ async function main() {
     console.error('Usage: pnpm user:create <email> "<Display Name>" <password> [owner|admin|member]');
     process.exit(1);
   }
+  const allowedDomain = (process.env.ALLOWED_EMAIL_DOMAIN ?? 'inmobiles.com').trim().toLowerCase();
+  if (allowedDomain && !email.toLowerCase().endsWith(`@${allowedDomain}`)) {
+    console.error(`Email must end with @${allowedDomain}`);
+    process.exit(1);
+  }
   const role = (roleArg ?? 'member') as 'owner' | 'admin' | 'member';
   if (!['owner', 'admin', 'member'].includes(role)) {
     console.error(`Invalid role "${role}" — use owner, admin, or member`);
