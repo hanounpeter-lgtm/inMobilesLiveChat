@@ -1,3 +1,12 @@
+# Only advertise HTTP/1.1 + HTTP/2. HTTP/3 would advertise a QUIC endpoint on
+# UDP 8055, which the AWS firewall doesn't open — browsers would then stall on
+# the dead QUIC port before falling back to TCP.
+{
+	servers {
+		protocols h1 h2
+	}
+}
+
 # Serves the SPA and proxies the API/WebSocket on the same origin (port 8055).
 # WebSocket upgrades are passed through automatically by reverse_proxy.
 # TLS uses a self-signed cert (mounted at /etc/caddy/certs, with the server IP
