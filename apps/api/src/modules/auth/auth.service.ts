@@ -72,10 +72,16 @@ export class AuthService {
             data: { displayName, passwordHash, deletedAt: null },
           })
         : await tx.user.create({ data: { email: normalized, displayName, passwordHash } });
+      // Bootstrap: the very first person to join an empty workspace becomes its
+      // owner, so a freshly-provisioned workspace is never left without an admin.
+      const memberCount = await tx.workspaceMember.count({
+        where: { workspaceId: workspace.id },
+      });
+      const role = memberCount === 0 ? 'owner' : 'member';
       await tx.workspaceMember.upsert({
         where: { workspaceId_userId: { workspaceId: workspace.id, userId: user.id } },
         update: {},
-        create: { workspaceId: workspace.id, userId: user.id, role: 'member' },
+        create: { workspaceId: workspace.id, userId: user.id, role },
       });
       const publicChannels = await tx.channel.findMany({
         where: { workspaceId: workspace.id, type: 'public', isArchived: false },
