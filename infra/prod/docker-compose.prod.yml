@@ -52,11 +52,11 @@ services:
     command: --config /etc/livekit/livekit.yaml --node-ip ${PUBLIC_IP}
     volumes:
       - ./livekit.yaml:/etc/livekit/livekit.yaml:ro
-    # Ports fit the server's already-open firewall (no AWS change needed).
+    # Signaling (7880) is internal-only — Caddy proxies /rtc to it. Only the
+    # media port (8057) is published, on the already-open firewall.
     ports:
-      - '8050:8050'
       - '8057:8057'
-      - '8002:8002/udp'
+      - '8057:8057/udp'
     restart: unless-stopped
 
   mailpit:

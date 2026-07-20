@@ -8,6 +8,12 @@
 		reverse_proxy api:3001
 	}
 
+	# LiveKit call signaling (WebSocket) — same origin, no extra public port.
+	@livekit path /rtc /rtc/*
+	handle @livekit {
+		reverse_proxy livekit:7880
+	}
+
 	handle {
 		root * /srv
 		try_files {path} /index.html
