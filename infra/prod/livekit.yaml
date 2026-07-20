@@ -3,10 +3,15 @@
 # server's already-open firewall, so no AWS change is needed. TCP+UDP media
 # share 8057; browsers use UDP when reachable, else fall back to TCP.
 port: 7880
+# Bind all interfaces (empty string) so Caddy can reach signaling over the
+# Docker network — development mode would restrict 7880 to loopback.
+bind_addresses:
+  - ''
 rtc:
   tcp_port: 8057
   udp_port: 8057
   use_external_ip: false
-development: true
+keys:
+  devkey: secret
 logging:
   level: info
