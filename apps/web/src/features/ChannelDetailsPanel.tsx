@@ -312,9 +312,8 @@ function MembersTab({
               {m.displayName}
               {m.id === selfId && <span className="muted"> (you)</span>}
             </span>
-            {m.id === channel.createdById && <span className="badge">creator</span>}
             {(m.workspaceRole === 'owner' || m.workspaceRole === 'admin') && (
-              <span className="badge">{m.workspaceRole}</span>
+              <span className="badge">admin</span>
             )}
             {canManage && m.id !== selfId && !channel.isDefault && (
               <button

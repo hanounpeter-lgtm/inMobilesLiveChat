@@ -1,8 +1,13 @@
 import type { MessageDto } from '@inmobiles/shared-types';
 
-// Server-generated call/recording notices.
-export const SYSTEM_LINE_RE =
-  /^(Started a (video )?call|Call ended · \d+ min|Recording stopped|.{1,80} started recording this call)$/;
+// Server-generated event notices. Impersonal lines get the author prefixed;
+// self-describing lines (recording, call ended) render as-is.
+const AUTHOR_PREFIXED_RE =
+  /^(Started a (video )?call|left the channel|was removed from the channel)$/;
+const VERBATIM_RE = /^(Call ended · \d+ min|Recording stopped|.{1,80} started recording this call)$/;
+export const SYSTEM_LINE_RE = new RegExp(
+  `${AUTHOR_PREFIXED_RE.source.slice(1, -1)}|${VERBATIM_RE.source.slice(1, -1)}`,
+);
 
 export const isSystemEvent = (m: MessageDto) =>
   !m.isDeleted && SYSTEM_LINE_RE.test(m.content.trim());
@@ -10,10 +15,8 @@ export const isSystemEvent = (m: MessageDto) =>
 /** Human line for an event chip: prefix the author when the text is impersonal. */
 export function systemEventText(m: MessageDto): string {
   const content = m.content.trim();
-  if (/^(Started a|Call ended)/.test(content)) {
-    return content.startsWith('Started a')
-      ? `${m.author.displayName} ${content[0].toLowerCase()}${content.slice(1)}`
-      : content;
+  if (AUTHOR_PREFIXED_RE.test(content)) {
+    return `${m.author.displayName} ${content[0].toLowerCase()}${content.slice(1)}`;
   }
   return content;
 }

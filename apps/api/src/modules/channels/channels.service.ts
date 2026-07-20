@@ -6,7 +6,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes, randomUUID } from 'crypto';
 import type {
   ChannelMemberDto,
   ChannelSummary,
@@ -390,6 +390,45 @@ export class ChannelsService {
     return addedDtos;
   }
 
+  /**
+   * Post a system notice (rendered as a centered event line) authored by the
+   * relevant user. Inserted directly to avoid a Messages↔Channels cycle and
+   * to bypass posting-policy gates.
+   */
+  private async postSystemMessage(channelId: string, authorId: string, content: string) {
+    const author = await this.prisma.user.findUnique({
+      where: { id: authorId },
+      select: { id: true, displayName: true, avatarUrl: true },
+    });
+    if (!author) return;
+    const created = await this.prisma.message.create({
+      data: { channelId, userId: authorId, content, clientMsgId: randomUUID() },
+    });
+    await this.prisma.channel.update({
+      where: { id: channelId },
+      data: { lastMessageAt: created.createdAt },
+    });
+    this.realtime.toChannel(channelId, ServerEvents.MessageNew, {
+      message: {
+        id: created.id,
+        channelId,
+        parentMessageId: null,
+        content,
+        clientMsgId: created.clientMsgId,
+        author,
+        replyCount: 0,
+        isEdited: false,
+        isDeleted: false,
+        isPinned: false,
+        reactions: [],
+        attachments: [],
+        lastReplyAt: null,
+        createdAt: created.createdAt.toISOString(),
+        updatedAt: created.updatedAt.toISOString(),
+      },
+    });
+  }
+
   /** Self = leave (always allowed); removing others requires manage rights. */
   async removeMember(channelId: string, actorId: string, targetUserId: string): Promise<void> {
     const channel = await this.prisma.channel.findUnique({
@@ -411,6 +450,14 @@ export class ChannelsService {
     await this.prisma.channelMember.delete({
       where: { channelId_userId: { channelId, userId: targetUserId } },
     });
+
+    // Announce the departure in-channel, before evicting the target's socket.
+    const selfLeave = actorId === targetUserId;
+    await this.postSystemMessage(
+      channelId,
+      targetUserId,
+      selfLeave ? 'left the channel' : 'was removed from the channel',
+    ).catch(() => undefined);
 
     this.realtime.toChannel(channelId, ServerEvents.ChannelMemberLeft, {
       channelId,
