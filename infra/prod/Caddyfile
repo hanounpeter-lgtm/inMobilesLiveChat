@@ -1,0 +1,16 @@
+# Serves the SPA and proxies the API/WebSocket on the same origin (port 8055).
+# WebSocket upgrades are passed through automatically by reverse_proxy.
+:8055 {
+	encode gzip
+
+	@api path /api/* /socket.io/*
+	handle @api {
+		reverse_proxy api:3001
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

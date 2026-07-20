@@ -56,7 +56,9 @@ export class AuthController {
     res.cookie(REFRESH_COOKIE, token, {
       httpOnly: true,
       sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production',
+      // HTTP-only deploys (bare IP, no TLS) must NOT set Secure or the
+      // browser drops the refresh cookie. Flip COOKIE_SECURE=true behind HTTPS.
+      secure: process.env.COOKIE_SECURE === 'true',
       path: '/api/auth',
       maxAge: 1000 * 60 * 60 * 24 * 30,
     });

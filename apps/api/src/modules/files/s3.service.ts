@@ -7,19 +7,24 @@ import type { Readable } from 'stream';
 @Injectable()
 export class S3Service {
   private readonly client: S3Client;
+  private readonly presignClient: S3Client;
   private readonly bucket: string;
 
   constructor(config: ConfigService) {
     this.bucket = config.get<string>('S3_BUCKET', 'chat-files');
-    this.client = new S3Client({
-      endpoint: config.get<string>('S3_ENDPOINT', 'http://localhost:9000'),
-      region: 'us-east-1',
-      forcePathStyle: true, // MinIO
-      credentials: {
-        accessKeyId: config.get<string>('S3_ACCESS_KEY', 'inmobiles'),
-        secretAccessKey: config.get<string>('S3_SECRET_KEY', 'inmobiles-secret'),
-      },
-    });
+    const internalEndpoint = config.get<string>('S3_ENDPOINT', 'http://localhost:9000');
+    // Presigned URLs are handed to the browser, so they must point at a
+    // publicly reachable host. In dev this equals the internal endpoint; in
+    // prod the server talks to MinIO over the Docker network (http://minio:9000)
+    // while browsers use S3_PUBLIC_ENDPOINT (http://<public-ip>:9000).
+    const publicEndpoint = config.get<string>('S3_PUBLIC_ENDPOINT') || internalEndpoint;
+    const credentials = {
+      accessKeyId: config.get<string>('S3_ACCESS_KEY', 'inmobiles'),
+      secretAccessKey: config.get<string>('S3_SECRET_KEY', 'inmobiles-secret'),
+    };
+    const common = { region: 'us-east-1', forcePathStyle: true, credentials };
+    this.client = new S3Client({ endpoint: internalEndpoint, ...common });
+    this.presignClient = new S3Client({ endpoint: publicEndpoint, ...common });
   }
 
   async putObject(key: string, body: Buffer, contentType: string) {
@@ -42,7 +47,7 @@ export class S3Service {
 
   presignGet(key: string, expiresInSeconds = 3600): Promise<string> {
     return getSignedUrl(
-      this.client,
+      this.presignClient,
       new GetObjectCommand({ Bucket: this.bucket, Key: key }),
       { expiresIn: expiresInSeconds },
     );

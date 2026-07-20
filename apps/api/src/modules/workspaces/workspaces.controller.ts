@@ -70,7 +70,7 @@ export class SignupController {
     res.cookie('refresh_token', result.refreshToken, {
       httpOnly: true,
       sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.COOKIE_SECURE === 'true',
       path: '/api/auth',
       maxAge: 1000 * 60 * 60 * 24 * 30,
     });
