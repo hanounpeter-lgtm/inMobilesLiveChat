@@ -1,6 +1,10 @@
 # Serves the SPA and proxies the API/WebSocket on the same origin (port 8055).
 # WebSocket upgrades are passed through automatically by reverse_proxy.
+# TLS uses a self-signed cert (mounted at /etc/caddy/certs, with the server IP
+# in its SAN) so the origin is a secure context — required for camera/mic in
+# calls. Browsers show a one-time "not secure" warning users click through.
 :8055 {
+	tls /etc/caddy/certs/site.pem /etc/caddy/certs/site.key
 	encode gzip
 
 	@api path /api/* /socket.io/*

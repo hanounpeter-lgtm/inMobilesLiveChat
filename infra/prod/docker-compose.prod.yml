@@ -85,6 +85,10 @@ services:
       - api
     ports:
       - '8055:8055'
+    # Self-signed TLS cert (generated on the server, not committed). Caddy
+    # serves HTTPS on 8055 so calls get a secure context.
+    volumes:
+      - ./certs:/etc/caddy/certs:ro
     restart: unless-stopped
 
 volumes:
