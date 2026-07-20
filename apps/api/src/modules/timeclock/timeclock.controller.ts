@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ClockAction } from '@inmobiles/shared-types';
 import { CurrentUserId } from '../../common/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -17,6 +17,16 @@ export class TimeclockController {
   @Get('team')
   async team(@CurrentUserId() userId: string) {
     return { team: await this.timeclock.team(userId) };
+  }
+
+  @Get('history')
+  history(
+    @CurrentUserId() userId: string,
+    @Query('userId') targetUserId?: string,
+    @Query('days') daysRaw?: string,
+  ) {
+    const days = Math.min(60, Math.max(1, Number(daysRaw) || 14));
+    return this.timeclock.history(userId, targetUserId || userId, days);
   }
 
   @Post(':action')

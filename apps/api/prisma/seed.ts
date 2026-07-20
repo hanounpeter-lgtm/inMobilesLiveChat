@@ -141,8 +141,8 @@ async function main() {
 
   const workspace = await prisma.workspace.upsert({
     where: { slug: 'inmobiles' },
-    update: {},
-    create: { name: 'inMobiles', slug: 'inmobiles' },
+    update: { name: 'inChat' },
+    create: { name: 'inChat', slug: 'inmobiles' },
   });
 
   const users: { id: string }[] = [];

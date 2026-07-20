@@ -319,6 +319,22 @@ export const TimeclockTeamEntry = z.object({
 });
 export type TimeclockTeamEntry = z.infer<typeof TimeclockTeamEntry>;
 
+export const TimeclockDayEntry = z.object({
+  date: z.string(), // YYYY-MM-DD (UTC day)
+  workedMs: z.number().int(),
+  breakMs: z.number().int(),
+  firstIn: z.string().datetime().nullable(),
+  lastOut: z.string().datetime().nullable(),
+});
+export type TimeclockDayEntry = z.infer<typeof TimeclockDayEntry>;
+
+export const TimeclockHistoryResponse = z.object({
+  userId: z.string().uuid(),
+  displayName: z.string(),
+  entries: z.array(TimeclockDayEntry),
+});
+export type TimeclockHistoryResponse = z.infer<typeof TimeclockHistoryResponse>;
+
 export const TimeclockUpdatePayload = z.object({
   userId: z.string().uuid(),
   status: ClockStatus,

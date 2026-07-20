@@ -1,6 +1,6 @@
-# inMobiles Chat
+# inChat
 
-Internal team chat platform (Slack/Teams style) for inMobiles. Monorepo:
+Internal team chat platform (Slack/Teams style) for inMobiles, branded inChat. Monorepo:
 
 - `apps/api` — NestJS + Socket.IO + Prisma (PostgreSQL) + Redis
 - `apps/web` — React + Vite + TanStack Query + Zustand

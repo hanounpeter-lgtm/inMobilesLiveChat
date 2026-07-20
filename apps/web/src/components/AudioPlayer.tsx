@@ -15,6 +15,14 @@ export default function AudioPlayer({ src }: { src: string }) {
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [rate, setRate] = useState(1);
+
+  const RATES = [0.5, 1, 1.5, 2] as const;
+  const cycleRate = () => {
+    const next = RATES[(RATES.indexOf(rate as (typeof RATES)[number]) + 1) % RATES.length];
+    setRate(next);
+    if (audioRef.current) audioRef.current.playbackRate = next;
+  };
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -63,6 +71,7 @@ export default function AudioPlayer({ src }: { src: string }) {
   const toggle = () => {
     const audio = audioRef.current;
     if (!audio) return;
+    audio.playbackRate = rate; // some browsers reset rate on load
     if (audio.paused) void audio.play().catch(() => undefined);
     else audio.pause();
   };
@@ -96,6 +105,9 @@ export default function AudioPlayer({ src }: { src: string }) {
         <div className="audio-bar-knob" style={{ left: `${progress}%` }} />
       </div>
       <span className="audio-time audio-duration">{fmt(duration)}</span>
+      <button className="audio-rate" title="Playback speed" onClick={cycleRate}>
+        {rate}×
+      </button>
     </div>
   );
 }

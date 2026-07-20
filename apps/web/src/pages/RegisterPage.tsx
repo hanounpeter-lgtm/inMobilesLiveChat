@@ -40,7 +40,7 @@ export default function RegisterPage() {
         <div className="brand">
           <img src="/logo.svg" alt="" className="logo-mark" />
           <h1 className="login-logo">
-            in<span>Mobiles</span>
+            in<span>Chat</span>
           </h1>
         </div>
         <p className="muted">Create your account</p>

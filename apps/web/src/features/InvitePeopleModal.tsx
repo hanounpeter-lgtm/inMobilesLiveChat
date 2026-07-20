@@ -79,7 +79,7 @@ export default function InvitePeopleModal({ onClose }: { onClose: () => void }) 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
-        <h3 className="modal-title">Invite people to inMobiles</h3>
+        <h3 className="modal-title">Invite people to inChat</h3>
         <form onSubmit={onSubmit} className="field">
           Email addresses <span className="muted">(comma or space separated)</span>
           <textarea

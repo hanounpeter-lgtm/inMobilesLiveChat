@@ -2,6 +2,8 @@ import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/com
 import type {
   ClockAction,
   ClockStatus,
+  TimeclockDayEntry,
+  TimeclockHistoryResponse,
   TimeclockMe,
   TimeclockTeamEntry,
 } from '@inmobiles/shared-types';
@@ -104,6 +106,98 @@ export class TimeclockService {
       workedMsToday: Math.max(0, Math.round(workedMs)),
       breakMsToday: Math.max(0, Math.round(breakMs)),
     };
+  }
+
+  /**
+   * Per-day worked/break totals for the past `days` UTC days. Members see
+   * their own history; workspace owners/admins can view anyone's. Intervals
+   * spanning midnight are split across day buckets.
+   */
+  async history(
+    requesterId: string,
+    targetUserId: string,
+    days: number,
+  ): Promise<TimeclockHistoryResponse> {
+    if (requesterId !== targetUserId) {
+      const admin = await this.prisma.workspaceMember.findFirst({
+        where: { userId: requesterId, role: { in: ['owner', 'admin'] } },
+      });
+      if (!admin) throw new ForbiddenException('Only admins can view other members’ history');
+    }
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, displayName: true },
+    });
+    if (!target) throw new BadRequestException('Unknown user');
+
+    const rangeStart = new Date();
+    rangeStart.setUTCHours(0, 0, 0, 0);
+    rangeStart.setUTCDate(rangeStart.getUTCDate() - (days - 1));
+
+    const [before, events] = await Promise.all([
+      this.lastEvent(targetUserId, rangeStart),
+      this.prisma.workClockEvent.findMany({
+        where: { userId: targetUserId, at: { gte: rangeStart } },
+        orderBy: { at: 'asc' },
+      }),
+    ]);
+
+    const dayKey = (t: number) => new Date(t).toISOString().slice(0, 10);
+    const buckets = new Map<
+      string,
+      { workedMs: number; breakMs: number; firstIn: string | null; lastOut: string | null }
+    >();
+    const bucket = (key: string) => {
+      let b = buckets.get(key);
+      if (!b) {
+        b = { workedMs: 0, breakMs: 0, firstIn: null, lastOut: null };
+        buckets.set(key, b);
+      }
+      return b;
+    };
+    // Add [from, to) under `status`, splitting at UTC midnights.
+    const addInterval = (from: number, to: number, status: ClockStatus) => {
+      if (status === 'off') return;
+      let cursor = from;
+      while (cursor < to) {
+        const nextMidnight = new Date(cursor);
+        nextMidnight.setUTCHours(24, 0, 0, 0);
+        const end = Math.min(to, nextMidnight.getTime());
+        const b = bucket(dayKey(cursor));
+        if (status === 'working') b.workedMs += end - cursor;
+        else b.breakMs += end - cursor;
+        cursor = end;
+      }
+    };
+
+    let status = statusAfter(before?.kind);
+    let cursor = rangeStart.getTime();
+    for (const event of events) {
+      addInterval(cursor, event.at.getTime(), status);
+      if (event.kind === 'clock_in') {
+        const b = bucket(dayKey(event.at.getTime()));
+        if (!b.firstIn) b.firstIn = event.at.toISOString();
+      }
+      if (event.kind === 'clock_out') {
+        bucket(dayKey(event.at.getTime())).lastOut = event.at.toISOString();
+      }
+      cursor = event.at.getTime();
+      status = statusAfter(event.kind);
+    }
+    addInterval(cursor, Date.now(), status);
+
+    const entries: TimeclockDayEntry[] = [...buckets.entries()]
+      .map(([date, b]) => ({
+        date,
+        workedMs: Math.round(b.workedMs),
+        breakMs: Math.round(b.breakMs),
+        firstIn: b.firstIn,
+        lastOut: b.lastOut,
+      }))
+      .filter((e) => e.workedMs > 0 || e.breakMs > 0 || e.firstIn || e.lastOut)
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    return { userId: target.id, displayName: target.displayName, entries };
   }
 
   /** Everyone's current status — two queries via distinct-on. */

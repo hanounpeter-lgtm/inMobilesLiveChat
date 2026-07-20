@@ -128,7 +128,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
       <div className="sidebar-header">
         <span className="workspace-brand">
           <img src="/logo.svg" alt="" className="logo-mark small" />
-          <span className="workspace-name">inMobiles</span>
+          <span className="workspace-name">inChat</span>
         </span>
         {isAdmin && (
           <button

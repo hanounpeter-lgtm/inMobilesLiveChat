@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ClockAction, TimeclockMe, TimeclockTeamEntry } from '@inmobiles/shared-types';
+import type {
+  ClockAction,
+  TimeclockHistoryResponse,
+  TimeclockMe,
+  TimeclockTeamEntry,
+} from '@inmobiles/shared-types';
 import { api } from '../lib/api';
+import { useAuth } from '../lib/auth-store';
 
 const fmtDur = (ms: number) => {
   const minutes = Math.floor(ms / 60000);
@@ -15,6 +21,8 @@ const STATUS_LABEL = { off: 'Clocked out', working: 'Working', break: 'On break'
 export function TimeclockWidget() {
   const queryClient = useQueryClient();
   const [showTeam, setShowTeam] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const user = useAuth((s) => s.user);
   const [, forceTick] = useState(0);
 
   const me = useQuery({
@@ -57,6 +65,9 @@ export function TimeclockWidget() {
             {fmtDur(workedLive)}
           </span>
         )}
+        <button className="icon-btn timeclock-team-btn" onClick={() => setShowHistory(true)}>
+          History
+        </button>
         <button className="icon-btn timeclock-team-btn" onClick={() => setShowTeam(true)}>
           Team
         </button>
@@ -112,11 +123,88 @@ export function TimeclockWidget() {
         <div className="timeclock-sub muted">on break for {fmtDur(liveExtra)}</div>
       )}
       {showTeam && <TeamClockModal onClose={() => setShowTeam(false)} />}
+      {showHistory && user && (
+        <TimeclockHistoryModal userId={user.id} onClose={() => setShowHistory(false)} />
+      )}
+    </div>
+  );
+}
+
+const dayLabelFmt = new Intl.DateTimeFormat(undefined, {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+});
+const clockTimeFmt = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' });
+
+export function TimeclockHistoryModal({
+  userId,
+  onClose,
+}: {
+  userId: string;
+  onClose: () => void;
+}) {
+  const history = useQuery({
+    queryKey: ['timeclock', 'history', userId],
+    queryFn: () =>
+      api<TimeclockHistoryResponse>(`/timeclock/history?userId=${userId}&days=14`),
+  });
+
+  useEffect(() => {
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onEsc);
+    return () => document.removeEventListener('keydown', onEsc);
+  }, [onClose]);
+
+  const entries = history.data?.entries ?? [];
+  const todayKey = new Date().toISOString().slice(0, 10);
+
+  return (
+    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal history-modal">
+        <h3 className="modal-title">
+          {history.data ? `${history.data.displayName} — last 14 days` : 'Work history'}
+        </h3>
+        <div className="history-table">
+          <div className="history-row history-head">
+            <span>Day</span>
+            <span>In</span>
+            <span>Out</span>
+            <span>Worked</span>
+            <span>Break</span>
+          </div>
+          {entries.map((e) => (
+            <div key={e.date} className="history-row">
+              <span>
+                {e.date === todayKey ? 'Today' : dayLabelFmt.format(new Date(`${e.date}T12:00:00Z`))}
+              </span>
+              <span>{e.firstIn ? clockTimeFmt.format(new Date(e.firstIn)) : '—'}</span>
+              <span>{e.lastOut ? clockTimeFmt.format(new Date(e.lastOut)) : '—'}</span>
+              <span className="history-worked">{fmtDur(e.workedMs)}</span>
+              <span className="muted">{e.breakMs > 0 ? fmtDur(e.breakMs) : '—'}</span>
+            </div>
+          ))}
+          {history.isLoading && <div className="muted pad-sm">Loading…</div>}
+          {history.isSuccess && entries.length === 0 && (
+            <div className="muted pad-sm">No clock activity in the last 14 days.</div>
+          )}
+        </div>
+        <div className="modal-actions">
+          <button className="btn-secondary" onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
 function TeamClockModal({ onClose }: { onClose: () => void }) {
+  const user = useAuth((s) => s.user);
+  const isAdmin = user?.role === 'owner' || user?.role === 'admin';
+  const [historyFor, setHistoryFor] = useState<string | null>(null);
   const team = useQuery({
     queryKey: ['timeclock', 'team'],
     queryFn: () => api<{ team: TimeclockTeamEntry[] }>('/timeclock/team'),
@@ -140,24 +228,33 @@ function TeamClockModal({ onClose }: { onClose: () => void }) {
       <div className="modal team-clock-modal">
         <h3 className="modal-title">Who's working</h3>
         <div className="member-list">
-          {sorted.map((entry) => (
-            <div key={entry.userId} className="member-row">
-              {entry.avatarUrl ? (
-                <img className="me-avatar" src={entry.avatarUrl} alt="" />
-              ) : (
-                <span className={`clock-dot clock-${entry.status}`} />
-              )}
-              <span className="member-name">{entry.displayName}</span>
-              {entry.since && entry.status !== 'off' && (
-                <span className="muted clock-since">
-                  {fmtDur(Date.now() - new Date(entry.since).getTime())}
+          {sorted.map((entry) => {
+            const canViewHistory = isAdmin || entry.userId === user?.id;
+            return (
+              <button
+                key={entry.userId}
+                className="member-row team-clock-row"
+                disabled={!canViewHistory}
+                title={canViewHistory ? 'View work history' : undefined}
+                onClick={() => canViewHistory && setHistoryFor(entry.userId)}
+              >
+                {entry.avatarUrl ? (
+                  <img className="me-avatar" src={entry.avatarUrl} alt="" />
+                ) : (
+                  <span className={`clock-dot clock-${entry.status}`} />
+                )}
+                <span className="member-name">{entry.displayName}</span>
+                {entry.since && entry.status !== 'off' && (
+                  <span className="muted clock-since">
+                    {fmtDur(Date.now() - new Date(entry.since).getTime())}
+                  </span>
+                )}
+                <span className={`clock-chip clock-chip-${entry.status}`}>
+                  {STATUS_LABEL[entry.status]}
                 </span>
-              )}
-              <span className={`clock-chip clock-chip-${entry.status}`}>
-                {STATUS_LABEL[entry.status]}
-              </span>
-            </div>
-          ))}
+              </button>
+            );
+          })}
           {team.isLoading && <div className="muted pad-sm">Loading…</div>}
         </div>
         <div className="modal-actions">
@@ -165,6 +262,9 @@ function TeamClockModal({ onClose }: { onClose: () => void }) {
             Close
           </button>
         </div>
+        {historyFor && (
+          <TimeclockHistoryModal userId={historyFor} onClose={() => setHistoryFor(null)} />
+        )}
       </div>
     </div>
   );

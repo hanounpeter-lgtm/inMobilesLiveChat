@@ -22,9 +22,9 @@ export class MailService {
     const link = `${this.webOrigin}/signup/${token}`;
     try {
       await this.transport.sendMail({
-        from: '"inMobiles Chat" <chat@inmobiles.local>',
+        from: '"inChat" <chat@inmobiles.local>',
         to,
-        subject: `${invitedBy} invited you to ${workspaceName} on inMobiles Chat`,
+        subject: `${invitedBy} invited you to ${workspaceName} on inChat`,
         text: `${invitedBy} invited you to join the ${workspaceName} workspace.\n\nCreate your account: ${link}\n\nThis invite expires in 7 days.`,
         html: `<p><strong>${invitedBy}</strong> invited you to join the <strong>${workspaceName}</strong> workspace.</p><p><a href="${link}">Create your account</a></p><p style="color:#888">This invite expires in 7 days.</p>`,
       });
