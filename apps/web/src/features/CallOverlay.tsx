@@ -8,6 +8,7 @@ import { api, apiUpload } from '../lib/api';
 import { getSocket } from '../lib/socket';
 import { useChatStore } from '../lib/chat-store';
 import { CallAudioRecorder, announceRecording } from '../lib/call-recorder';
+import CallAttendees from './CallAttendees';
 
 export default function CallOverlay({ join }: { join: JoinCallResponse }) {
   const endCall = useChatStore((s) => s.setCurrentCall);
@@ -120,6 +121,7 @@ export default function CallOverlay({ join }: { join: JoinCallResponse }) {
         audio
         onDisconnected={onDisconnected}
       >
+        <CallAttendees />
         <VideoConference />
       </LiveKitRoom>
     </div>

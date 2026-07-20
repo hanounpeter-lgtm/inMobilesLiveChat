@@ -1928,6 +1928,89 @@ button:active:not([disabled]) {
   gap: 10px;
 }
 
+/* Live roster of who's in the call, floating at the top of the overlay. */
+.call-attendees {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 110;
+  max-width: min(90vw, 900px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.call-attendees-label {
+  padding: 3px 12px;
+  border-radius: 12px;
+  background: rgb(0 0 0 / 60%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.call-attendees-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.attendee-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 11px 4px 4px;
+  border-radius: 20px;
+  background: rgb(0 0 0 / 55%);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 2px solid transparent;
+  transition: border-color 0.15s ease;
+}
+
+.attendee-chip.is-speaking {
+  border-color: var(--gold);
+}
+
+.attendee-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #fff;
+}
+
+.attendee-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attendee-initial {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.attendee-name {
+  white-space: nowrap;
+}
+
+.attendee-mute {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
 .rec-badge {
   display: inline-flex;
   align-items: center;
