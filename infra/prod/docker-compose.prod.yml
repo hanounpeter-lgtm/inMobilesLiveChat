@@ -49,11 +49,14 @@ services:
 
   livekit:
     image: livekit/livekit-server:latest
-    command: --dev --bind 0.0.0.0 --node-ip ${PUBLIC_IP}
+    command: --config /etc/livekit/livekit.yaml --node-ip ${PUBLIC_IP}
+    volumes:
+      - ./livekit.yaml:/etc/livekit/livekit.yaml:ro
+    # Ports fit the server's already-open firewall (no AWS change needed).
     ports:
-      - '7880:7880'
-      - '7881:7881'
-      - '7882:7882/udp'
+      - '8050:8050'
+      - '8057:8057'
+      - '8002:8002/udp'
     restart: unless-stopped
 
   mailpit:

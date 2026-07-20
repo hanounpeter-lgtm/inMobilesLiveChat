@@ -1,0 +1,11 @@
+# LiveKit ports chosen to fit the server's already-open firewall, so no AWS
+# security-group change is needed. development:true uses the devkey/secret
+# placeholder keys (matches LIVEKIT_API_KEY/SECRET in .env.prod).
+port: 8050
+rtc:
+  tcp_port: 8057
+  udp_port: 8002
+  use_external_ip: false
+development: true
+logging:
+  level: info
