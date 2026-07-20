@@ -35,6 +35,19 @@ export class ApiError extends Error {
   }
 }
 
+/** Fetch a binary resource with auth (+ one refresh retry) as a Blob. */
+export async function apiBlob(path: string): Promise<Blob> {
+  const doFetch = () =>
+    fetch(`/api${path}`, {
+      credentials: 'include',
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    });
+  let res = await doFetch();
+  if (res.status === 401 && (await tryRefresh())) res = await doFetch();
+  if (!res.ok) throw new ApiError(res.status, 'Fetch failed');
+  return res.blob();
+}
+
 /** Multipart upload with progress callback (fetch cannot report upload progress). */
 export function apiUploadWithProgress<T>(
   path: string,

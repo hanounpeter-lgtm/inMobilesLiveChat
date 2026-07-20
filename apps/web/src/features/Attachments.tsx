@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { FileUrlResponse, MessageAttachmentDto } from '@inmobiles/shared-types';
-import { api } from '../lib/api';
+import type { MessageAttachmentDto } from '@inmobiles/shared-types';
+import { useAuthedObjectUrl, downloadAuthedFile } from '../lib/media';
 import { IconDownload, IconFile } from '../components/icons';
 
 const formatSize = (bytes: number) => {
@@ -26,16 +26,8 @@ function Lightbox({ url, alt, onClose }: { url: string; alt: string; onClose: ()
 }
 
 function ImageAttachment({ attachment }: { attachment: MessageAttachmentDto }) {
-  const [url, setUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const { url, failed } = useAuthedObjectUrl(`/files/${attachment.id}/raw`);
   const [zoomed, setZoomed] = useState(false);
-
-  useEffect(() => {
-    // Presigned URLs expire — resolve per mount.
-    api<FileUrlResponse>(`/files/${attachment.id}/url`)
-      .then((res) => setUrl(res.url))
-      .catch(() => setFailed(true));
-  }, [attachment.id]);
 
   if (failed) return <div className="muted">{attachment.filename} unavailable</div>;
   if (!url) return <div className="image-attachment image-loading" />;
@@ -56,12 +48,7 @@ function ImageAttachment({ attachment }: { attachment: MessageAttachmentDto }) {
 function FileCard({ attachment }: { attachment: MessageAttachmentDto }) {
   const download = async () => {
     try {
-      // Fresh presigned URL on every click — old messages never go stale.
-      const res = await api<FileUrlResponse>(`/files/${attachment.id}/url`);
-      const a = document.createElement('a');
-      a.href = res.url;
-      a.download = attachment.filename;
-      a.click();
+      await downloadAuthedFile(`/files/${attachment.id}/raw`, attachment.filename);
     } catch {
       /* gone */
     }

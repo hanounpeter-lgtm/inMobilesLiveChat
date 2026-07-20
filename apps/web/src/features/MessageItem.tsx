@@ -3,8 +3,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import type { FileUrlResponse, MessageDto } from '@inmobiles/shared-types';
+import type { MessageDto } from '@inmobiles/shared-types';
 import { api } from '../lib/api';
+import { useAuthedObjectUrl } from '../lib/media';
 import { useAuth } from '../lib/auth-store';
 import { upsertMessage } from '../lib/message-cache';
 import { formatMentions, MENTION_HREF_PREFIX } from '../lib/mention-format';
@@ -21,16 +22,9 @@ const AUDIO_MESSAGE_RE = /^\[(recording|voice):([0-9a-f-]{36})\]$/;
 /** Audio message (call recording or voice note): resolves a short-lived
  * playback URL and renders a labeled player. */
 function AudioMessage({ kind, attachmentId }: { kind: string; attachmentId: string }) {
-  const [url, setUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const { url, failed } = useAuthedObjectUrl(`/files/${attachmentId}/raw`);
   const label = kind === 'voice' ? 'Voice note' : 'Call recording';
   const icon = kind === 'voice' ? <IconMic size={13} /> : <IconHeadphones size={13} />;
-
-  useEffect(() => {
-    api<FileUrlResponse>(`/files/${attachmentId}/url`)
-      .then((res) => setUrl(res.url))
-      .catch(() => setFailed(true));
-  }, [attachmentId]);
 
   if (failed) return <div className="muted">{label} unavailable</div>;
   return (
