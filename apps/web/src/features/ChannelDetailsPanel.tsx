@@ -315,6 +315,16 @@ function MembersTab({
             {(m.workspaceRole === 'owner' || m.workspaceRole === 'admin') && (
               <span className="badge">admin</span>
             )}
+            {m.id === selfId && canLeave && (
+              <button
+                className="member-leave-btn"
+                onClick={() => {
+                  if (window.confirm(`Leave #${channel.name}?`)) removeMember.mutate(selfId);
+                }}
+              >
+                Leave
+              </button>
+            )}
             {canManage && m.id !== selfId && !channel.isDefault && (
               <button
                 className="icon-btn danger"
