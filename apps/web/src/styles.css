@@ -8,10 +8,14 @@
   --bg: #f8f7f2;
   --bg-raised: #fffefb;
   --bg-hover: #efede3;
-  --sidebar-bg: #1e3229;
-  --sidebar-text: #9db4a8;
+  --sidebar-bg: #ece8dd;
+  --sidebar-text: #5b675e;
+  --sidebar-strong: #222d27;
   --sidebar-active: #2e6b4f;
-  --sidebar-hover: rgb(255 255 255 / 7%);
+  --sidebar-hover: rgb(0 0 0 / 6%);
+  --sidebar-line: rgb(0 0 0 / 9%);
+  --sidebar-raised: rgb(0 0 0 / 5%);
+  --sidebar-raised-hover: rgb(0 0 0 / 10%);
   --text: #23302a;
   --text-muted: #7c887f;
   --border: #e3e1d4;
@@ -38,7 +42,12 @@
     --bg-hover: #222e27;
     --sidebar-bg: #0e1512;
     --sidebar-text: #8ba295;
+    --sidebar-strong: #ffffff;
     --sidebar-active: #2e6b4f;
+    --sidebar-hover: rgb(255 255 255 / 7%);
+    --sidebar-line: rgb(255 255 255 / 8%);
+    --sidebar-raised: rgb(255 255 255 / 6%);
+    --sidebar-raised-hover: rgb(255 255 255 / 14%);
     --text: #dde7df;
     --text-muted: #8b9d91;
     --border: #2b3a32;
@@ -61,7 +70,12 @@
   --bg-hover: #222e27;
   --sidebar-bg: #0e1512;
   --sidebar-text: #8ba295;
+  --sidebar-strong: #ffffff;
   --sidebar-active: #2e6b4f;
+  --sidebar-hover: rgb(255 255 255 / 7%);
+  --sidebar-line: rgb(255 255 255 / 8%);
+  --sidebar-raised: rgb(255 255 255 / 6%);
+  --sidebar-raised-hover: rgb(255 255 255 / 14%);
   --text: #dde7df;
   --text-muted: #8b9d91;
   --border: #2b3a32;
@@ -397,14 +411,14 @@ button:active:not([disabled]) {
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  border-bottom: 1px solid var(--sidebar-line);
 }
 
 .workspace-name {
   font-weight: 800;
   font-size: 16.5px;
   letter-spacing: -0.01em;
-  color: #fff;
+  color: var(--sidebar-strong);
 }
 
 .sidebar-scroll {
@@ -443,7 +457,7 @@ button:active:not([disabled]) {
 }
 
 .icon-btn:hover {
-  background: rgb(255 255 255 / 14%);
+  background: var(--sidebar-raised-hover);
 }
 
 .channel-item {
@@ -466,7 +480,7 @@ button:active:not([disabled]) {
 
 .channel-item:hover {
   background: var(--sidebar-hover);
-  color: #fff;
+  color: var(--sidebar-strong);
 }
 
 .channel-item.active {
@@ -477,7 +491,7 @@ button:active:not([disabled]) {
 
 .channel-item.unread {
   font-weight: 700;
-  color: #fff;
+  color: var(--sidebar-strong);
 }
 
 .channel-hash {
@@ -511,13 +525,13 @@ button:active:not([disabled]) {
   margin: 4px 0 10px;
   padding: 5px;
   border-radius: 10px;
-  background: rgb(255 255 255 / 6%);
+  background: var(--sidebar-raised);
 }
 
 /* ---------- Time clock ---------- */
 .timeclock {
   padding: 10px 14px;
-  border-top: 1px solid rgb(255 255 255 / 8%);
+  border-top: 1px solid var(--sidebar-line);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -528,7 +542,7 @@ button:active:not([disabled]) {
   align-items: center;
   gap: 8px;
   font-size: 12.5px;
-  color: #fff;
+  color: var(--sidebar-strong);
   font-weight: 600;
 }
 
@@ -551,7 +565,7 @@ button:active:not([disabled]) {
 
 .clock-off {
   background: transparent;
-  border: 1.5px solid rgb(255 255 255 / 35%);
+  border: 1.5px solid var(--sidebar-text);
 }
 
 .timeclock-total {
@@ -573,9 +587,9 @@ button:active:not([disabled]) {
 
 .clock-btn {
   flex: 1;
-  border: 1px solid rgb(255 255 255 / 18%);
-  background: rgb(255 255 255 / 6%);
-  color: #fff;
+  border: 1px solid var(--sidebar-line);
+  background: var(--sidebar-raised);
+  color: var(--sidebar-strong);
   border-radius: 8px;
   padding: 6px 8px;
   font-size: 12px;
@@ -583,7 +597,7 @@ button:active:not([disabled]) {
 }
 
 .clock-btn:hover:not([disabled]) {
-  background: rgb(255 255 255 / 14%);
+  background: var(--sidebar-raised-hover);
 }
 
 .clock-btn-primary {
@@ -694,15 +708,15 @@ button:active:not([disabled]) {
   align-items: center;
   justify-content: space-between;
   padding: 11px 14px;
-  border-top: 1px solid rgb(255 255 255 / 8%);
-  background: rgb(0 0 0 / 15%);
+  border-top: 1px solid var(--sidebar-line);
+  background: var(--sidebar-raised);
 }
 
 .me {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #fff;
+  color: var(--sidebar-strong);
   font-weight: 600;
   font-size: 14px;
   border: none;
