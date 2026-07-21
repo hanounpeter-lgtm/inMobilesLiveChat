@@ -175,6 +175,8 @@ export class AuthService {
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
       statusText: user.statusText,
+      department: user.department,
+      jobTitle: user.jobTitle,
       role: user.workspaceMemberships[0]?.role ?? 'member',
     };
   }

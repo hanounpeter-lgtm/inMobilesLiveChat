@@ -2628,6 +2628,86 @@ button:active:not([disabled]) {
   letter-spacing: -0.01em;
 }
 
+/* ---------- Profile field row + role badge ---------- */
+.field-row {
+  display: flex;
+  gap: 12px;
+}
+
+.field-row .field {
+  flex: 1;
+  min-width: 0;
+}
+
+.role-badge {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: var(--gold);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Company directory ---------- */
+.directory-modal {
+  width: min(560px, 94vw);
+}
+
+.directory-search {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.directory-list {
+  max-height: 52vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.directory-empty {
+  padding: 24px;
+  text-align: center;
+}
+
+.directory-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  border-radius: 8px;
+}
+
+.directory-row:hover {
+  background: var(--bg-hover);
+}
+
+.directory-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.directory-name {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.directory-sub {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.directory-dm {
+  flex-shrink: 0;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 720px) {
   .sidebar {

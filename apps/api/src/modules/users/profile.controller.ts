@@ -37,7 +37,14 @@ export class ProfileController {
   private async broadcast(userId: string) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { id: true, displayName: true, avatarUrl: true, statusText: true },
+      select: {
+        id: true,
+        displayName: true,
+        avatarUrl: true,
+        statusText: true,
+        department: true,
+        jobTitle: true,
+      },
     });
     const memberships = await this.prisma.workspaceMember.findMany({ where: { userId } });
     for (const m of memberships) {
@@ -57,6 +64,8 @@ export class ProfileController {
       data: {
         ...(body.displayName !== undefined ? { displayName: body.displayName.trim() } : {}),
         ...(body.statusText !== undefined ? { statusText: body.statusText?.trim() || null } : {}),
+        ...(body.department !== undefined ? { department: body.department?.trim() || null } : {}),
+        ...(body.jobTitle !== undefined ? { jobTitle: body.jobTitle?.trim() || null } : {}),
       },
     });
     return this.broadcast(userId);

@@ -8,6 +8,10 @@ export interface DirectoryUser {
   avatarUrl: string | null;
   online: boolean;
   email: string;
+  statusText: string | null;
+  department: string | null;
+  jobTitle: string | null;
+  role: 'owner' | 'admin' | 'member' | 'guest';
 }
 
 /** Workspace directory, always warm — mention rendering needs display names. */

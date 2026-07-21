@@ -10,6 +10,8 @@ interface ProfileUser {
   displayName: string;
   avatarUrl: string | null;
   statusText: string | null;
+  department?: string | null;
+  jobTitle?: string | null;
 }
 
 export default function ProfileModal({ onClose }: { onClose: () => void }) {
@@ -17,6 +19,8 @@ export default function ProfileModal({ onClose }: { onClose: () => void }) {
   const user = useAuth((s) => s.user);
   const [displayName, setDisplayName] = useState(user?.displayName ?? '');
   const [statusText, setStatusText] = useState(user?.statusText ?? '');
+  const [department, setDepartment] = useState(user?.department ?? '');
+  const [jobTitle, setJobTitle] = useState(user?.jobTitle ?? '');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl ?? null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -148,6 +152,8 @@ export default function ProfileModal({ onClose }: { onClose: () => void }) {
         body: JSON.stringify({
           displayName: displayName.trim(),
           statusText: statusText.trim() || null,
+          department: department.trim() || null,
+          jobTitle: jobTitle.trim() || null,
         }),
       });
       applyUser(updated);
@@ -243,6 +249,26 @@ export default function ProfileModal({ onClose }: { onClose: () => void }) {
             maxLength={100}
           />
         </label>
+        <div className="field-row">
+          <label className="field">
+            Job title <span className="muted">(optional)</span>
+            <input
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+              placeholder="e.g. Backend Engineer"
+              maxLength={80}
+            />
+          </label>
+          <label className="field">
+            Department <span className="muted">(optional)</span>
+            <input
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              placeholder="e.g. Engineering"
+              maxLength={80}
+            />
+          </label>
+        </div>
         {error && <div className="error-text">{error}</div>}
 
         <div className="modal-actions">

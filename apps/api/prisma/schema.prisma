@@ -64,6 +64,8 @@ model User {
   avatarUrl    String?   @map("avatar_url")
   statusText   String?   @map("status_text")
   statusEmoji  String?   @map("status_emoji")
+  department   String?
+  jobTitle     String?   @map("job_title")
   timezone     String?
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -82,6 +84,8 @@ model User {
   channelInvites       ChannelInvite[]
   workspaceInvites     WorkspaceInvite[]
   clockEvents          WorkClockEvent[]
+  savedMessages        SavedMessage[]
+  scheduledMeetings    ScheduledMeeting[]
 
   @@map("users")
 }
@@ -153,10 +157,44 @@ model Channel {
   messages  Message[]
   calls     Call[]
   invites   ChannelInvite[]
+  meetings  ScheduledMeeting[]
 
   @@unique([workspaceId, name])
   @@index([workspaceId, type])
   @@map("channels")
+}
+
+model SavedMessage {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, messageId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("saved_messages")
+}
+
+model ScheduledMeeting {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  channelId   String   @map("channel_id") @db.Uuid
+  createdById String   @map("created_by_id") @db.Uuid
+  title       String
+  description String?
+  type        CallType @default(video)
+  scheduledAt DateTime @map("scheduled_at") @db.Timestamptz()
+  reminded    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([channelId, scheduledAt])
+  @@index([scheduledAt, reminded])
+  @@map("scheduled_meetings")
 }
 
 model ChannelMember {
@@ -187,6 +225,7 @@ model Message {
   lastReplyAt     DateTime? @map("last_reply_at") @db.Timestamptz()
   isEdited        Boolean   @default(false) @map("is_edited")
   isPinned        Boolean   @default(false) @map("is_pinned")
+  forwardedFromId String?   @map("forwarded_from_id") @db.Uuid
   contentTsv      Unsupported("tsvector")? @map("content_tsv")
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -196,8 +235,11 @@ model Message {
   author        User         @relation(fields: [userId], references: [id])
   parentMessage Message?     @relation("Thread", fields: [parentMessageId], references: [id])
   replies       Message[]    @relation("Thread")
+  forwardedFrom Message?     @relation("MessageForward", fields: [forwardedFromId], references: [id], onDelete: SetNull)
+  forwards      Message[]    @relation("MessageForward")
   reactions     Reaction[]
   attachments   Attachment[]
+  savedBy       SavedMessage[]
 
   @@unique([channelId, clientMsgId])
   @@index([channelId, createdAt(sort: Desc), id(sort: Desc)])

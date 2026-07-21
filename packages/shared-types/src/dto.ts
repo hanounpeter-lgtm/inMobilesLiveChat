@@ -13,6 +13,8 @@ export const AuthUser = z.object({
   displayName: z.string(),
   avatarUrl: z.string().nullable(),
   statusText: z.string().nullable(),
+  department: z.string().nullable(),
+  jobTitle: z.string().nullable(),
   role: z.enum(['owner', 'admin', 'member', 'guest']),
 });
 export type AuthUser = z.infer<typeof AuthUser>;
@@ -27,9 +29,24 @@ export const UpdateProfileRequest = z
   .object({
     displayName: z.string().min(1).max(80).optional(),
     statusText: z.string().max(100).nullable().optional(),
+    department: z.string().max(80).nullable().optional(),
+    jobTitle: z.string().max(80).nullable().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, 'Nothing to update');
 export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequest>;
+
+export const DirectoryUserDto = z.object({
+  id: z.string().uuid(),
+  displayName: z.string(),
+  avatarUrl: z.string().nullable(),
+  statusText: z.string().nullable(),
+  email: z.string(),
+  department: z.string().nullable(),
+  jobTitle: z.string().nullable(),
+  role: z.enum(['owner', 'admin', 'member', 'guest']),
+  online: z.boolean(),
+});
+export type DirectoryUserDto = z.infer<typeof DirectoryUserDto>;
 
 export const UserUpdatedPayload = z.object({
   user: z.object({
@@ -37,6 +54,8 @@ export const UserUpdatedPayload = z.object({
     displayName: z.string(),
     avatarUrl: z.string().nullable(),
     statusText: z.string().nullable(),
+    department: z.string().nullable(),
+    jobTitle: z.string().nullable(),
   }),
 });
 export type UserUpdatedPayload = z.infer<typeof UserUpdatedPayload>;
