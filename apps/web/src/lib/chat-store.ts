@@ -28,6 +28,9 @@ interface ChatState {
   /** Incoming DM call ringing — AppShell renders the accept/decline prompt. */
   incomingCall: CallRingPayload | null;
   setIncomingCall: (call: CallRingPayload | null) => void;
+  /** Home dashboard shown instead of a channel. */
+  showHome: boolean;
+  openHome: () => void;
   typingByChannel: Record<string, TypingUser[]>;
   onlineUserIds: Set<string>;
   setActiveChannel: (id: string | null) => void;
@@ -52,10 +55,12 @@ export const useChatStore = create<ChatState>((set) => ({
   setForwardMessage: (message) => set({ forwardMessage: message }),
   incomingCall: null,
   setIncomingCall: (call) => set({ incomingCall: call }),
+  showHome: false,
+  openHome: () => set({ showHome: true, threadOpenFor: null, detailsPanelOpen: false }),
   typingByChannel: {},
   onlineUserIds: new Set(),
 
-  setActiveChannel: (id) => set({ activeChannelId: id, threadOpenFor: null }),
+  setActiveChannel: (id) => set({ activeChannelId: id, threadOpenFor: null, showHome: false }),
 
   setTyping: (channelId, users) =>
     set((s) => ({ typingByChannel: { ...s.typingByChannel, [channelId]: users } })),

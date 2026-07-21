@@ -16,6 +16,8 @@ import TasksModal from './TasksModal';
 import FilesHubModal from './FilesHubModal';
 import CalendarModal from './CalendarModal';
 import AdminModal from './AdminModal';
+import BroadcastModal from './BroadcastModal';
+import type { JoinCallResponse, MeetingDto } from '@inmobiles/shared-types';
 import { TimeclockWidget } from './Timeclock';
 import { useUnreads } from '../lib/unreads';
 import {
@@ -65,6 +67,38 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
   const [showFiles, setShowFiles] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showBroadcast, setShowBroadcast] = useState(false);
+  const openHome = useChatStore((s) => s.openHome);
+  const setCurrentCall = useChatStore((s) => s.setCurrentCall);
+
+  const joinByCode = async () => {
+    const code = window.prompt('Enter meeting code:')?.trim();
+    if (!code) return;
+    try {
+      const meeting = await api<MeetingDto>(`/meetings/by-code/${encodeURIComponent(code)}`);
+      setActiveChannel(meeting.channelId);
+      const join = await api<JoinCallResponse>(`/channels/${meeting.channelId}/call`, {
+        method: 'POST',
+        body: JSON.stringify({ type: meeting.type }),
+      });
+      setCurrentCall(join);
+    } catch {
+      window.alert('No meeting found for that code.');
+    }
+  };
+
+  const focusMode = async () => {
+    const raw = window.prompt('Focus for how many minutes?', '30');
+    const mins = Number(raw);
+    if (!mins || mins <= 0) return;
+    const until = new Date(Date.now() + mins * 60_000);
+    const label = `🎯 Focusing until ${until.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+    const updated = await api<{ statusText: string | null }>('/users/me', {
+      method: 'PATCH',
+      body: JSON.stringify({ statusText: label }),
+    }).catch(() => null);
+    if (updated) useAuth.setState((s) => ({ user: s.user ? { ...s.user, statusText: label } : s.user }));
+  };
 
   // Ctrl/Cmd+K opens search from anywhere.
   useEffect(() => {
@@ -168,6 +202,10 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
 
       <div className="sidebar-scroll">
         <div className="sidebar-section">
+          <button className="channel-item" onClick={openHome}>
+            <span className="channel-hash">🏠</span>
+            <span className="channel-label">Home</span>
+          </button>
           <button className="channel-item" onClick={() => setShowSearch(true)}>
             <span className="channel-hash">
               <IconSearch size={14} />
@@ -216,6 +254,18 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
               <IconFile size={14} />
             </span>
             <span className="channel-label">Files</span>
+          </button>
+          <button className="channel-item" onClick={() => setShowBroadcast(true)}>
+            <span className="channel-hash">📣</span>
+            <span className="channel-label">Broadcast</span>
+          </button>
+          <button className="channel-item" onClick={() => void joinByCode()}>
+            <span className="channel-hash">#️⃣</span>
+            <span className="channel-label">Join by code</span>
+          </button>
+          <button className="channel-item" onClick={() => void focusMode()}>
+            <span className="channel-hash">🎯</span>
+            <span className="channel-label">Focus mode</span>
           </button>
           {isAdmin && (
             <button className="channel-item" onClick={() => setShowAdmin(true)}>
@@ -307,6 +357,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
       {showCalendar && <CalendarModal onClose={() => setShowCalendar(false)} />}
       {showFiles && <FilesHubModal onClose={() => setShowFiles(false)} />}
       {showAdmin && <AdminModal onClose={() => setShowAdmin(false)} />}
+      {showBroadcast && <BroadcastModal onClose={() => setShowBroadcast(false)} />}
     </aside>
   );
 }

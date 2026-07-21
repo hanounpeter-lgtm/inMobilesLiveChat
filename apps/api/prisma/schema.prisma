@@ -67,6 +67,10 @@ model User {
   department   String?
   jobTitle     String?   @map("job_title")
   timezone     String?
+  emailVerified    Boolean   @default(true) @map("email_verified")
+  verifyToken      String?   @unique @map("verify_token")
+  resetToken       String?   @unique @map("reset_token")
+  resetTokenExpiry DateTime? @map("reset_token_expiry") @db.Timestamptz()
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()

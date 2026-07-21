@@ -37,6 +37,11 @@ export class MeetingsController {
     return this.meetings.create(channelId, userId, body);
   }
 
+  @Get('meetings/by-code/:code')
+  joinByCode(@CurrentUserId() userId: string, @Param('code') code: string) {
+    return this.meetings.joinByCode(code, userId);
+  }
+
   @Delete('meetings/:id')
   @HttpCode(204)
   async cancel(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) id: string) {

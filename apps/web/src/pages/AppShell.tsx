@@ -47,6 +47,7 @@ import ChannelDetailsPanel from '../features/ChannelDetailsPanel';
 import ThreadPanel from '../features/ThreadPanel';
 import ForwardModal from '../features/ForwardModal';
 import IncomingCallModal from '../features/IncomingCallModal';
+import HomeDashboard from '../features/HomeDashboard';
 
 export default function AppShell() {
   const queryClient = useQueryClient();
@@ -319,11 +320,14 @@ export default function AppShell() {
   const threadOpenFor = useChatStore((s) => s.threadOpenFor);
   const forwardMessage = useChatStore((s) => s.forwardMessage);
   const incomingCall = useChatStore((s) => s.incomingCall);
+  const showHome = useChatStore((s) => s.showHome);
 
   return (
     <div className="app-shell">
       <Sidebar channels={channels} />
-      {activeChannel ? (
+      {showHome ? (
+        <HomeDashboard channels={channels} />
+      ) : activeChannel ? (
         <MessagePane key={activeChannel.id} channel={activeChannel} />
       ) : (
         <div className="fullscreen-center muted">

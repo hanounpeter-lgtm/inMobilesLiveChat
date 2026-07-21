@@ -58,6 +58,9 @@ export default function LoginPage() {
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
         <p className="muted auth-switch">
+          <Link to="/forgot-password">Forgot password?</Link>
+        </p>
+        <p className="muted auth-switch">
           New here? <Link to="/register">Create an account</Link>
         </p>
       </form>

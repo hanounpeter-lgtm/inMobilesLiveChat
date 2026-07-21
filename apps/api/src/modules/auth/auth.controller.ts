@@ -11,7 +11,14 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
-import { LoginRequest, LoginResponse, RegisterRequest } from '@inmobiles/shared-types';
+import {
+  ForgotPasswordRequest,
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
+  ResetPasswordRequest,
+  TokenRequest,
+} from '@inmobiles/shared-types';
 import { AuthService } from './auth.service';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
 
@@ -49,7 +56,29 @@ export class AuthController {
       req.headers['user-agent'],
     );
     this.setRefreshCookie(res, refreshToken);
-    return { accessToken, user: await this.auth.getAuthUser(user.id) };
+    return {
+      accessToken,
+      user: await this.auth.getAuthUser(user.id),
+      verifyUrl: await this.auth.verifyUrlFor(user.id),
+    };
+  }
+
+  @Post('forgot-password')
+  @HttpCode(200)
+  forgotPassword(@Body(new ZodValidationPipe(ForgotPasswordRequest)) body: ForgotPasswordRequest) {
+    return this.auth.forgotPassword(body.email);
+  }
+
+  @Post('reset-password')
+  @HttpCode(204)
+  async resetPassword(@Body(new ZodValidationPipe(ResetPasswordRequest)) body: ResetPasswordRequest) {
+    await this.auth.resetPassword(body.token, body.password);
+  }
+
+  @Post('verify-email')
+  @HttpCode(204)
+  async verifyEmail(@Body(new ZodValidationPipe(TokenRequest)) body: TokenRequest) {
+    await this.auth.verifyEmail(body.token);
   }
 
   private setRefreshCookie(res: Response, token: string) {

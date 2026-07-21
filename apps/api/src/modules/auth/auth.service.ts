@@ -22,6 +22,8 @@ const sha256 = (value: string) => createHash('sha256').update(value).digest('hex
 export class AuthService {
   private readonly refreshTtlMs: number;
   private readonly allowedDomain: string;
+  private readonly webOrigin: string;
+  private readonly requireVerification: boolean;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -33,6 +35,56 @@ export class AuthService {
     this.allowedDomain = (config.get<string>('ALLOWED_EMAIL_DOMAIN', 'inmobiles.com') ?? '')
       .trim()
       .toLowerCase();
+    this.webOrigin = config.get<string>('WEB_ORIGIN', 'http://localhost:5173') ?? '';
+    this.requireVerification = config.get<string>('REQUIRE_EMAIL_VERIFICATION') === 'true';
+  }
+
+  /** Start a password reset — returns the link (surfaced on-screen since real
+   * email delivery isn't configured). Never reveals whether the email exists. */
+  async forgotPassword(email: string): Promise<{ resetUrl: string | null }> {
+    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    if (!user || user.deletedAt) return { resetUrl: null };
+    const token = randomBytes(24).toString('base64url');
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { resetToken: token, resetTokenExpiry: new Date(Date.now() + 30 * 60 * 1000) },
+    });
+    return { resetUrl: `${this.webOrigin}/reset-password?token=${token}` };
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { resetToken: token } });
+    if (!user || !user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
+      throw new BadRequestException('This reset link is invalid or has expired');
+    }
+    const passwordHash = await argon2.hash(newPassword);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash, resetToken: null, resetTokenExpiry: null },
+    });
+    // Kill all existing sessions after a password change.
+    await this.prisma.refreshToken.deleteMany({ where: { userId: user.id } });
+  }
+
+  async verifyEmail(token: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { verifyToken: token } });
+    if (!user) throw new BadRequestException('This verification link is invalid');
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: true, verifyToken: null },
+    });
+  }
+
+  /** Link the user can use to verify their email (shown on-screen after signup). */
+  async verifyUrlFor(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.emailVerified) return null;
+    let token = user.verifyToken;
+    if (!token) {
+      token = randomBytes(24).toString('base64url');
+      await this.prisma.user.update({ where: { id: userId }, data: { verifyToken: token } });
+    }
+    return `${this.webOrigin}/verify-email?token=${token}`;
   }
 
   /** Company policy: accounts must use the workspace email domain. */
@@ -66,12 +118,16 @@ export class AuthService {
 
     const passwordHash = await argon2.hash(password);
     return this.prisma.$transaction(async (tx) => {
+      const verified = !this.requireVerification;
+      const verifyToken = verified ? null : randomBytes(24).toString('base64url');
       const user = existing
         ? await tx.user.update({
             where: { id: existing.id },
-            data: { displayName, passwordHash, deletedAt: null },
+            data: { displayName, passwordHash, deletedAt: null, emailVerified: verified, verifyToken },
           })
-        : await tx.user.create({ data: { email: normalized, displayName, passwordHash } });
+        : await tx.user.create({
+            data: { email: normalized, displayName, passwordHash, emailVerified: verified, verifyToken },
+          });
       // Bootstrap: the very first person to join an empty workspace becomes its
       // owner, so a freshly-provisioned workspace is never left without an admin.
       const memberCount = await tx.workspaceMember.count({
@@ -104,6 +160,9 @@ export class AuthService {
     }
     const ok = await argon2.verify(user.passwordHash, password);
     if (!ok) throw new UnauthorizedException('Invalid email or password');
+    if (this.requireVerification && !user.emailVerified) {
+      throw new UnauthorizedException('Please verify your email address before signing in');
+    }
     return user;
   }
 

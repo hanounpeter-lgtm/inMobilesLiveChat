@@ -5,7 +5,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import type { MeetingDto, ScheduleMeetingRequest } from '@inmobiles/shared-types';
 import { ServerEvents } from '@inmobiles/shared-types';
 import type { CallType, ScheduledMeeting, User } from '@prisma/client';
@@ -45,6 +45,7 @@ export class MeetingsService implements OnModuleInit, OnModuleDestroy {
       type: m.type as 'audio' | 'video',
       scheduledAt: m.scheduledAt.toISOString(),
       createdBy: { id: m.createdBy.id, displayName: m.createdBy.displayName },
+      joinCode: m.joinCode,
     };
   }
 
@@ -58,12 +59,33 @@ export class MeetingsService implements OnModuleInit, OnModuleDestroy {
         description: body.description ?? null,
         type: body.type as CallType,
         scheduledAt: new Date(body.scheduledAt),
+        joinCode: this.makeCode(),
       },
       include: { createdBy: { select: { id: true, displayName: true } } },
     });
     const dto = this.toDto(meeting);
     this.realtime.toChannel(channelId, ServerEvents.MeetingScheduled, { meeting: dto });
     return dto;
+  }
+
+  private makeCode(): string {
+    // 8-char human-friendly code (no ambiguous chars).
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    const bytes = randomBytes(8);
+    for (let i = 0; i < 8; i++) code += alphabet[bytes[i] % alphabet.length];
+    return code;
+  }
+
+  /** Resolve a join code to the meeting's channel so the caller can start/join. */
+  async joinByCode(code: string, userId: string): Promise<MeetingDto> {
+    const meeting = await this.prisma.scheduledMeeting.findUnique({
+      where: { joinCode: code.toUpperCase() },
+      include: { createdBy: { select: { id: true, displayName: true } } },
+    });
+    if (!meeting) throw new NotFoundException('No meeting found for that code');
+    await this.channels.requireMembership(meeting.channelId, userId);
+    return this.toDto(meeting);
   }
 
   async list(channelId: string, userId: string): Promise<MeetingDto[]> {

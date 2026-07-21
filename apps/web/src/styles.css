@@ -3368,6 +3368,178 @@ button:active:not([disabled]) {
   margin-top: 6px;
 }
 
+/* ---------- Auth: reset / verify ---------- */
+.reset-result {
+  padding: 10px 0;
+  font-size: 14px;
+}
+.reset-link {
+  display: block;
+  word-break: break-all;
+  padding: 8px;
+  background: var(--bg-hover);
+  border-radius: 6px;
+  margin: 6px 0;
+  font-size: 12px;
+}
+.small {
+  font-size: 11px;
+}
+
+/* ---------- Broadcast ---------- */
+.broadcast-text {
+  width: 100%;
+  resize: vertical;
+  padding: 10px;
+  margin-bottom: 10px;
+  font-family: inherit;
+}
+.broadcast-hint {
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.broadcast-target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.broadcast-target:hover {
+  background: var(--bg-hover);
+}
+
+/* ---------- Home dashboard ---------- */
+.home-dashboard {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px;
+  background: var(--bg);
+}
+.home-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.home-header h1 {
+  font-size: 26px;
+}
+.home-clock {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  max-width: 900px;
+}
+.home-card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+}
+.home-card h3 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.home-unread {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font-weight: 600;
+}
+.home-unread:hover {
+  background: var(--bg-hover);
+}
+.home-online {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.home-person {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+/* ---------- In-call side-chat ---------- */
+.call-sidechat {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 300px;
+  z-index: 115;
+  background: rgb(20 20 20 / 92%);
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  border-left: 1px solid rgb(255 255 255 / 12%);
+}
+.call-sidechat-title {
+  padding: 12px;
+  font-weight: 700;
+  border-bottom: 1px solid rgb(255 255 255 / 12%);
+}
+.call-sidechat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.call-chat-line {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+}
+.call-chat-author {
+  font-size: 11px;
+  opacity: 0.7;
+}
+.call-chat-line.mine .call-chat-author {
+  color: var(--gold);
+}
+.call-sidechat-input {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  border-top: 1px solid rgb(255 255 255 / 12%);
+}
+.call-sidechat-input input {
+  flex: 1;
+  background: rgb(255 255 255 / 10%);
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px;
+}
+.call-sidechat-input button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 720px) {
   .sidebar {

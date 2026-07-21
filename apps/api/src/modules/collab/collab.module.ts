@@ -10,6 +10,7 @@ import { NotesService } from './notes.service';
 import { CalendarService } from './calendar.service';
 import { AdminService } from './admin.service';
 import { FilesHubService } from './fileshub.service';
+import { BroadcastService } from './broadcast.service';
 
 @Module({
   imports: [AuthModule, ChannelsModule, MessagesModule],
@@ -22,6 +23,7 @@ import { FilesHubService } from './fileshub.service';
     CalendarService,
     AdminService,
     FilesHubService,
+    BroadcastService,
   ],
 })
 export class CollabModule {}

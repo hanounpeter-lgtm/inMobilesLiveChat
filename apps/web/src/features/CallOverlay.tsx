@@ -9,6 +9,7 @@ import { getSocket } from '../lib/socket';
 import { useChatStore } from '../lib/chat-store';
 import { CallAudioRecorder, announceRecording } from '../lib/call-recorder';
 import CallAttendees from './CallAttendees';
+import CallSideChat from './CallSideChat';
 
 export default function CallOverlay({ join }: { join: JoinCallResponse }) {
   const endCall = useChatStore((s) => s.setCurrentCall);
@@ -18,6 +19,7 @@ export default function CallOverlay({ join }: { join: JoinCallResponse }) {
     by: join.call.isRecording ? 'someone' : '',
   });
   const [busy, setBusy] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const recorderRef = useRef<CallAudioRecorder | null>(null);
 
   // Joining a call that's already being recorded → immediate consent notice.
@@ -111,7 +113,11 @@ export default function CallOverlay({ join }: { join: JoinCallResponse }) {
             {iAmRecorder ? '⏹ Stop recording' : '⏺ Record'}
           </button>
         )}
+        <button className="rec-toggle" onClick={() => setChatOpen((v) => !v)}>
+          {chatOpen ? '✕ Chat' : '💬 Chat'}
+        </button>
       </div>
+      {chatOpen && <CallSideChat channelId={join.call.channelId} />}
       <LiveKitRoom
         room={room}
         serverUrl={join.serverUrl}

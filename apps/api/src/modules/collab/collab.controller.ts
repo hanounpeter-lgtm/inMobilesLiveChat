@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 import {
+  BroadcastRequest,
   CreateEventRequest,
   CreatePollRequest,
   CreateTaskRequest,
@@ -30,6 +31,7 @@ import { NotesService } from './notes.service';
 import { CalendarService } from './calendar.service';
 import { AdminService } from './admin.service';
 import { FilesHubService } from './fileshub.service';
+import { BroadcastService } from './broadcast.service';
 
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -42,7 +44,16 @@ export class CollabController {
     private readonly calendar: CalendarService,
     private readonly admin: AdminService,
     private readonly filesHub: FilesHubService,
+    private readonly broadcastSvc: BroadcastService,
   ) {}
+
+  @Post('broadcast')
+  broadcast(
+    @CurrentUserId() userId: string,
+    @Body(new ZodValidationPipe(BroadcastRequest)) body: BroadcastRequest,
+  ) {
+    return this.broadcastSvc.broadcast(userId, body.channelIds, body.text);
+  }
 
   // ---- Polls ----
   @Post('channels/:id/polls')

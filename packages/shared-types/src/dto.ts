@@ -22,8 +22,21 @@ export type AuthUser = z.infer<typeof AuthUser>;
 export const LoginResponse = z.object({
   accessToken: z.string(),
   user: AuthUser,
+  // Present only when the account is unverified and verification is enabled —
+  // surfaced on-screen because real email delivery isn't configured.
+  verifyUrl: z.string().nullable().optional(),
 });
 export type LoginResponse = z.infer<typeof LoginResponse>;
+
+export const ForgotPasswordRequest = z.object({ email: z.string().email() });
+export type ForgotPasswordRequest = z.infer<typeof ForgotPasswordRequest>;
+export const ResetPasswordRequest = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8).max(128),
+});
+export type ResetPasswordRequest = z.infer<typeof ResetPasswordRequest>;
+export const TokenRequest = z.object({ token: z.string().min(1) });
+export type TokenRequest = z.infer<typeof TokenRequest>;
 
 export const UpdateProfileRequest = z
   .object({
@@ -589,6 +602,7 @@ export const MeetingDto = z.object({
   type: z.enum(['audio', 'video']),
   scheduledAt: z.string().datetime(),
   createdBy: z.object({ id: z.string().uuid(), displayName: z.string() }),
+  joinCode: z.string().nullable(),
 });
 export type MeetingDto = z.infer<typeof MeetingDto>;
 
@@ -618,6 +632,13 @@ export const PollDto = z.object({
 export type PollDto = z.infer<typeof PollDto>;
 export const PollUpdatePayload = z.object({ pollId: z.string().uuid(), channelId: z.string().uuid() });
 export type PollUpdatePayload = z.infer<typeof PollUpdatePayload>;
+
+// ---------- Broadcast ----------
+export const BroadcastRequest = z.object({
+  channelIds: z.array(z.string().uuid()).min(1).max(200),
+  text: z.string().min(1).max(4000),
+});
+export type BroadcastRequest = z.infer<typeof BroadcastRequest>;
 
 // ---------- Message templates ----------
 export const MessageTemplateDto = z.object({
