@@ -29,8 +29,10 @@
   --radius: 8px;
 }
 
+/* Dark values, shared by the OS "system" default and an explicit dark choice.
+   The media query is scoped so a user who forces Light overrides the OS. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #131a16;
     --bg-raised: #1a231e;
     --bg-hover: #222e27;
@@ -51,6 +53,28 @@
     --shadow-md: 0 5px 18px rgb(0 0 0 / 45%);
     --shadow-lg: 0 14px 44px rgb(0 0 0 / 60%);
   }
+}
+
+:root[data-theme='dark'] {
+  --bg: #131a16;
+  --bg-raised: #1a231e;
+  --bg-hover: #222e27;
+  --sidebar-bg: #0e1512;
+  --sidebar-text: #8ba295;
+  --sidebar-active: #2e6b4f;
+  --text: #dde7df;
+  --text-muted: #8b9d91;
+  --border: #2b3a32;
+  --accent: #4e9a75;
+  --accent-hover: #3d7f5f;
+  --accent-soft: #21382d;
+  --accent-text: #f2f7f0;
+  --gold: #d29a3a;
+  --online: #d29a3a;
+  --code-bg: #222e27;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 35%);
+  --shadow-md: 0 5px 18px rgb(0 0 0 / 45%);
+  --shadow-lg: 0 14px 44px rgb(0 0 0 / 60%);
 }
 
 * {
@@ -3609,6 +3633,68 @@ button:active:not([disabled]) {
   border-color: var(--accent);
   color: var(--accent);
   transform: translateY(-2px);
+}
+
+/* ---------- Appearance: theme + accent ---------- */
+.theme-toggle {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.theme-opt {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+}
+.theme-opt.active {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+.accent-swatches {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.accent-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.accent-swatch.active {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--bg-raised) inset;
+}
+.accent-custom {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px dashed var(--border);
+  cursor: pointer;
+  display: inline-flex;
+}
+.accent-custom input[type='color'] {
+  width: 40px;
+  height: 40px;
+  margin: -7px;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+.accent-reset {
+  padding: 4px 10px;
+  font-size: 12px;
 }
 
 /* ---------- Responsive ---------- */

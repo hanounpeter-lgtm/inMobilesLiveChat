@@ -4,6 +4,14 @@ import type { AuthUser } from '@inmobiles/shared-types';
 import { api, apiUpload } from '../lib/api';
 import { useAuth } from '../lib/auth-store';
 import { IconVideo } from '../components/icons';
+import {
+  ACCENT_PRESETS,
+  getAccent,
+  getTheme,
+  setAccent,
+  setTheme,
+  type ThemeMode,
+} from '../lib/theme';
 
 interface ProfileUser {
   id: string;
@@ -21,6 +29,8 @@ export default function ProfileModal({ onClose }: { onClose: () => void }) {
   const [statusText, setStatusText] = useState(user?.statusText ?? '');
   const [department, setDepartment] = useState(user?.department ?? '');
   const [jobTitle, setJobTitle] = useState(user?.jobTitle ?? '');
+  const [theme, setThemeState] = useState<ThemeMode>(getTheme());
+  const [accent, setAccentState] = useState<string | null>(getAccent());
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl ?? null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -268,6 +278,61 @@ export default function ProfileModal({ onClose }: { onClose: () => void }) {
               maxLength={80}
             />
           </label>
+        </div>
+        <div className="field">
+          Appearance
+          <div className="theme-toggle">
+            {(['light', 'dark', 'system'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={`theme-opt${theme === m ? ' active' : ''}`}
+                onClick={() => {
+                  setTheme(m);
+                  setThemeState(m);
+                }}
+              >
+                {m === 'light' ? '☀ Light' : m === 'dark' ? '☾ Dark' : '🖥 System'}
+              </button>
+            ))}
+          </div>
+          <div className="accent-swatches">
+            {ACCENT_PRESETS.map((p) => (
+              <button
+                key={p.hex}
+                type="button"
+                className={`accent-swatch${(accent ?? '#2e6b4f').toLowerCase() === p.hex ? ' active' : ''}`}
+                style={{ background: p.hex }}
+                title={p.name}
+                onClick={() => {
+                  setAccent(p.hex);
+                  setAccentState(p.hex);
+                }}
+              />
+            ))}
+            <label className="accent-custom" title="Custom color">
+              <input
+                type="color"
+                value={accent ?? '#2e6b4f'}
+                onChange={(e) => {
+                  setAccent(e.target.value);
+                  setAccentState(e.target.value);
+                }}
+              />
+            </label>
+            {accent && (
+              <button
+                type="button"
+                className="btn-secondary accent-reset"
+                onClick={() => {
+                  setAccent(null);
+                  setAccentState(null);
+                }}
+              >
+                Reset
+              </button>
+            )}
+          </div>
         </div>
         {error && <div className="error-text">{error}</div>}
 
