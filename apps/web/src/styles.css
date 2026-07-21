@@ -2805,6 +2805,133 @@ button:active:not([disabled]) {
   flex-shrink: 0;
 }
 
+/* ---------- Incoming call ring ---------- */
+.incoming-call {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 200;
+  animation: slide-in-right 0.25s ease;
+}
+
+.incoming-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 25%);
+  max-width: 340px;
+}
+
+.incoming-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  animation: badge-pop 1s ease-in-out infinite;
+}
+
+.incoming-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.incoming-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.incoming-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.incoming-accept,
+.incoming-decline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.incoming-accept {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.incoming-decline {
+  background: #e5484d;
+  color: #fff;
+}
+
+/* ---------- Meetings banner ---------- */
+.meetings-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.meeting-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.meeting-title {
+  font-weight: 600;
+}
+
+.meeting-time {
+  font-size: 12px;
+}
+
+.meeting-cancel {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #e5484d;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* ---------- Attendee screen-share grant ---------- */
+.attendee-grant {
+  margin-left: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid rgb(255 255 255 / 35%);
+  background: transparent;
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.attendee-grant:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 720px) {
   .sidebar {

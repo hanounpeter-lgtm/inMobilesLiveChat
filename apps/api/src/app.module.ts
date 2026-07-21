@@ -7,6 +7,7 @@ import { UsersModule } from './modules/users/users.module';
 import { ChannelsModule } from './modules/channels/channels.module';
 import { MessagesModule } from './modules/messages/messages.module';
 import { CallsModule } from './modules/calls/calls.module';
+import { MeetingsModule } from './modules/meetings/meetings.module';
 import { FilesModule } from './modules/files/files.module';
 import { GifsModule } from './modules/gifs/gifs.module';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
@@ -31,6 +32,7 @@ import { HealthController } from './health.controller';
     ChannelsModule,
     MessagesModule,
     CallsModule,
+    MeetingsModule,
     FilesModule,
     GifsModule,
     WorkspacesModule,

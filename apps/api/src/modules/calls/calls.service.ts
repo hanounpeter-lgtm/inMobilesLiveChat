@@ -1,6 +1,11 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AccessToken } from 'livekit-server-sdk';
+import { AccessToken, RoomServiceClient, TrackSource } from 'livekit-server-sdk';
 import { randomUUID } from 'crypto';
 import type { CallDto, JoinCallResponse } from '@inmobiles/shared-types';
 import { ServerEvents } from '@inmobiles/shared-types';
@@ -18,6 +23,7 @@ export class CallsService {
   private readonly livekitUrl: string;
   private readonly apiKey: string;
   private readonly apiSecret: string;
+  private readonly roomService: RoomServiceClient;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -30,6 +36,10 @@ export class CallsService {
     this.livekitUrl = config.get<string>('LIVEKIT_URL', 'ws://localhost:7880');
     this.apiKey = config.get<string>('LIVEKIT_API_KEY', 'devkey');
     this.apiSecret = config.get<string>('LIVEKIT_API_SECRET', 'secret');
+    // The server reaches LiveKit's HTTP API directly (not through Caddy, which
+    // only proxies /rtc). Defaults to the Docker service name in prod.
+    const internal = config.get<string>('LIVEKIT_INTERNAL_URL', 'http://localhost:7880');
+    this.roomService = new RoomServiceClient(internal, this.apiKey, this.apiSecret);
   }
 
   private toDto(call: CallWithStarter): CallDto {
@@ -50,11 +60,22 @@ export class CallsService {
       name: user.displayName,
       ttl: '2h',
     });
+    // Only the host may screen-share by default; others get camera + mic and
+    // can be granted screen-share live by the host (grantScreenshare).
+    const isHost = call.startedById === userId;
     token.addGrant({
       room: call.livekitRoom,
       roomJoin: true,
       canPublish: true,
       canSubscribe: true,
+      canPublishSources: isHost
+        ? [
+            TrackSource.CAMERA,
+            TrackSource.MICROPHONE,
+            TrackSource.SCREEN_SHARE,
+            TrackSource.SCREEN_SHARE_AUDIO,
+          ]
+        : [TrackSource.CAMERA, TrackSource.MICROPHONE],
     });
     return token.toJwt();
   }
@@ -81,6 +102,7 @@ export class CallsService {
       include: { startedBy: { select: { id: true, displayName: true } } },
     });
 
+    const isNew = !call;
     if (!call) {
       call = await this.prisma.call.create({
         data: {
@@ -97,13 +119,94 @@ export class CallsService {
         content: type === 'video' ? 'Started a video call' : 'Started a call',
         clientMsgId: randomUUID(),
       });
+      await this.ringDirectMessage(call, channelId, userId, type);
+    } else {
+      // Joining/accepting an existing call — stop it ringing on every device.
+      this.realtime.toChannel(channelId, ServerEvents.CallRingStop, {
+        callId: call.id,
+        channelId,
+      });
     }
 
+    const isHost = call.startedById === userId;
     return {
       call: this.toDto(call),
       token: await this.mintToken(call, userId),
       serverUrl: this.livekitUrl,
+      canScreenshare: isHost,
+      isHost,
     };
+  }
+
+  /** Ring the other member(s) of a DM when a call starts there. */
+  private async ringDirectMessage(
+    call: Call,
+    channelId: string,
+    starterId: string,
+    type: 'audio' | 'video',
+  ) {
+    const channel = await this.prisma.channel.findUnique({
+      where: { id: channelId },
+      select: { type: true },
+    });
+    if (channel?.type !== 'dm' && channel?.type !== 'group_dm') return;
+    const [starter, members] = await Promise.all([
+      this.prisma.user.findUniqueOrThrow({
+        where: { id: starterId },
+        select: { id: true, displayName: true, avatarUrl: true },
+      }),
+      this.prisma.channelMember.findMany({ where: { channelId }, select: { userId: true } }),
+    ]);
+    for (const m of members) {
+      if (m.userId === starterId) continue;
+      this.realtime.toUser(m.userId, ServerEvents.CallRing, {
+        callId: call.id,
+        channelId,
+        type,
+        from: starter,
+      });
+    }
+  }
+
+  /** Decline an incoming DM call — stops ringing and records a missed call. */
+  async decline(callId: string, userId: string): Promise<void> {
+    const call = await this.prisma.call.findUnique({ where: { id: callId } });
+    if (!call) throw new NotFoundException('Call not found');
+    await this.channels.requireMembership(call.channelId, userId);
+    this.realtime.toChannel(call.channelId, ServerEvents.CallRingStop, {
+      callId,
+      channelId: call.channelId,
+    });
+    // If nobody has joined and the caller is alone, end + record the miss.
+    if (!call.endedAt) {
+      await this.messages.send(call.channelId, userId, {
+        content: 'Missed call',
+        clientMsgId: randomUUID(),
+      });
+    }
+  }
+
+  /** Host grants a participant permission to screen-share, live (no rejoin). */
+  async grantScreenshare(callId: string, hostId: string, targetUserId: string): Promise<void> {
+    const call = await this.prisma.call.findUnique({ where: { id: callId } });
+    if (!call || call.endedAt) throw new NotFoundException('Call not found or ended');
+    if (call.startedById !== hostId) {
+      throw new ForbiddenException('Only the call host can grant screen sharing');
+    }
+    await this.roomService.updateParticipant(call.livekitRoom, targetUserId, undefined, {
+      canPublish: true,
+      canSubscribe: true,
+      canPublishSources: [
+        TrackSource.CAMERA,
+        TrackSource.MICROPHONE,
+        TrackSource.SCREEN_SHARE,
+        TrackSource.SCREEN_SHARE_AUDIO,
+      ],
+    });
+    this.realtime.toUser(targetUserId, ServerEvents.ScreenshareGranted, {
+      callId,
+      userId: targetUserId,
+    });
   }
 
   /**

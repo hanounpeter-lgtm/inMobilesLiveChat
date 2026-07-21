@@ -121,7 +121,7 @@ export default function CallOverlay({ join }: { join: JoinCallResponse }) {
         audio
         onDisconnected={onDisconnected}
       >
-        <CallAttendees />
+        <CallAttendees isHost={join.isHost} callId={join.call.id} />
         <VideoConference />
       </LiveKitRoom>
     </div>

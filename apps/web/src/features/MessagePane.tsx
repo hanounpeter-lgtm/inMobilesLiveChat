@@ -15,11 +15,20 @@ import { canManageChannel } from '../lib/permissions';
 import Composer from './Composer';
 import MessageItem from './MessageItem';
 import CallBanner from './CallBanner';
+import MeetingsBanner from './MeetingsBanner';
+import ScheduleMeetingModal from './ScheduleMeetingModal';
 import MessageContextMenu, { type MenuState } from './MessageContextMenu';
 import { useMarkRead } from '../lib/use-mark-read';
 import { useUnreads } from '../lib/unreads';
 import { isSystemEvent, shouldGroup, systemEventText } from '../lib/message-utils';
-import { IconInfo, IconLock, IconPhone, IconStar, IconVideo } from '../components/icons';
+import {
+  IconCalendar,
+  IconInfo,
+  IconLock,
+  IconPhone,
+  IconStar,
+  IconVideo,
+} from '../components/icons';
 
 // Stable fallback: returning a fresh [] from the zustand selector would make
 // every render look like a state change and loop forever.
@@ -103,6 +112,7 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
   const [contextMenu, setContextMenu] = useState<MenuState | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
   const dragDepth = useRef(0);
   const setComposerFiles = useChatStore((s) => s.setComposerFiles);
 
@@ -241,6 +251,14 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
           </button>
           <button
             className="call-btn"
+            title="Schedule a meeting"
+            disabled={channel.isArchived}
+            onClick={() => setShowSchedule(true)}
+          >
+            <IconCalendar />
+          </button>
+          <button
+            className="call-btn"
             title="Channel details"
             onClick={() => setDetailsPanel(!detailsPanelOpen)}
           >
@@ -249,6 +267,10 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
         </div>
       </header>
       <CallBanner channel={channel} />
+      <MeetingsBanner channelId={channel.id} />
+      {showSchedule && (
+        <ScheduleMeetingModal channelId={channel.id} onClose={() => setShowSchedule(false)} />
+      )}
 
       <div className="message-scroll" ref={scrollRef}>
         {query.hasNextPage && (

@@ -31,6 +31,13 @@ export const IconVideo = (p: IconProps) => (
   </svg>
 );
 
+export const IconCalendar = (p: IconProps) => (
+  <svg {...base(p)}>
+    <rect x="3" y="4" width="18" height="18" rx="2" />
+    <path d="M16 2v4M8 2v4M3 10h18" />
+  </svg>
+);
+
 export const IconUsers = (p: IconProps) => (
   <svg {...base(p)}>
     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />

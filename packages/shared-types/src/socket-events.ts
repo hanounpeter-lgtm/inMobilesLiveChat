@@ -23,6 +23,11 @@ export const ServerEvents = {
   CallStarted: 'call:started',
   CallEnded: 'call:ended',
   CallRecording: 'call:recording',
+  CallRing: 'call:ring',
+  CallRingStop: 'call:ring_stop',
+  ScreenshareGranted: 'call:screenshare_granted',
+  MeetingScheduled: 'meeting:scheduled',
+  MeetingCancelled: 'meeting:cancelled',
 } as const;
 
 export const ClientEvents = {

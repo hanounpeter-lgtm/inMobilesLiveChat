@@ -54,6 +54,22 @@ export class CallsController {
     await this.calls.leave(callId, userId, body.remainingParticipants);
   }
 
+  @Post('calls/:id/decline')
+  @HttpCode(204)
+  async decline(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) callId: string) {
+    await this.calls.decline(callId, userId);
+  }
+
+  @Post('calls/:id/screenshare/:targetUserId')
+  @HttpCode(204)
+  async grantScreenshare(
+    @CurrentUserId() userId: string,
+    @Param('id', ParseUUIDPipe) callId: string,
+    @Param('targetUserId', ParseUUIDPipe) targetUserId: string,
+  ) {
+    await this.calls.grantScreenshare(callId, userId, targetUserId);
+  }
+
   @Post('calls/:id/recording/start')
   startRecording(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) callId: string) {
     return this.calls.setRecording(callId, userId, true);

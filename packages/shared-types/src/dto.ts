@@ -511,6 +511,8 @@ export const JoinCallResponse = z.object({
   call: CallDto,
   token: z.string(),
   serverUrl: z.string(),
+  canScreenshare: z.boolean(),
+  isHost: z.boolean(),
 });
 export type JoinCallResponse = z.infer<typeof JoinCallResponse>;
 
@@ -524,6 +526,60 @@ export const CallEndedPayload = z.object({
   channelId: z.string().uuid(),
 });
 export type CallEndedPayload = z.infer<typeof CallEndedPayload>;
+
+// Incoming-call ring (DM calls) + screen-share grant.
+export const CallRingPayload = z.object({
+  callId: z.string().uuid(),
+  channelId: z.string().uuid(),
+  type: z.enum(['audio', 'video']),
+  from: z.object({
+    id: z.string().uuid(),
+    displayName: z.string(),
+    avatarUrl: z.string().nullable(),
+  }),
+});
+export type CallRingPayload = z.infer<typeof CallRingPayload>;
+
+export const CallRingStopPayload = z.object({
+  callId: z.string().uuid(),
+  channelId: z.string().uuid(),
+});
+export type CallRingStopPayload = z.infer<typeof CallRingStopPayload>;
+
+export const ScreenshareGrantedPayload = z.object({
+  callId: z.string().uuid(),
+  userId: z.string().uuid(),
+});
+export type ScreenshareGrantedPayload = z.infer<typeof ScreenshareGrantedPayload>;
+
+// ---------- Scheduled meetings ----------
+export const ScheduleMeetingRequest = z.object({
+  title: z.string().min(1).max(120),
+  description: z.string().max(500).nullable().optional(),
+  type: z.enum(['audio', 'video']).default('video'),
+  scheduledAt: z.string().datetime(),
+});
+export type ScheduleMeetingRequest = z.infer<typeof ScheduleMeetingRequest>;
+
+export const MeetingDto = z.object({
+  id: z.string().uuid(),
+  channelId: z.string().uuid(),
+  title: z.string(),
+  description: z.string().nullable(),
+  type: z.enum(['audio', 'video']),
+  scheduledAt: z.string().datetime(),
+  createdBy: z.object({ id: z.string().uuid(), displayName: z.string() }),
+});
+export type MeetingDto = z.infer<typeof MeetingDto>;
+
+export const MeetingScheduledPayload = z.object({ meeting: MeetingDto });
+export type MeetingScheduledPayload = z.infer<typeof MeetingScheduledPayload>;
+
+export const MeetingCancelledPayload = z.object({
+  meetingId: z.string().uuid(),
+  channelId: z.string().uuid(),
+});
+export type MeetingCancelledPayload = z.infer<typeof MeetingCancelledPayload>;
 
 export const RoomJoinPayload = z.object({
   channelId: z.string().uuid(),

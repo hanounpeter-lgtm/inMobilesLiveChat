@@ -2,9 +2,13 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CallEndedPayload,
+  CallRingPayload,
+  CallRingStopPayload,
   CallStartedPayload,
   ChannelReadPayload,
   ChannelRemovedPayload,
+  MeetingScheduledPayload,
+  MeetingCancelledPayload,
   ReadReceiptDto,
   ChannelSummary,
   ChannelUpdatedPayload,
@@ -42,6 +46,7 @@ import CallOverlay from '../features/CallOverlay';
 import ChannelDetailsPanel from '../features/ChannelDetailsPanel';
 import ThreadPanel from '../features/ThreadPanel';
 import ForwardModal from '../features/ForwardModal';
+import IncomingCallModal from '../features/IncomingCallModal';
 
 export default function AppShell() {
   const queryClient = useQueryClient();
@@ -167,8 +172,23 @@ export default function AppShell() {
     };
     const onCallStarted = ({ call }: CallStartedPayload) =>
       queryClient.setQueryData(['call', call.channelId], { call });
-    const onCallEnded = ({ channelId }: CallEndedPayload) =>
+    const onCallEnded = ({ channelId }: CallEndedPayload) => {
       queryClient.setQueryData(['call', channelId], { call: null });
+      const ring = useChatStore.getState().incomingCall;
+      if (ring?.channelId === channelId) useChatStore.getState().setIncomingCall(null);
+    };
+    const onCallRing = (ring: CallRingPayload) => {
+      // Don't ring yourself, and never ring while already in a call.
+      if (ring.from.id === user?.id || useChatStore.getState().currentCall) return;
+      useChatStore.getState().setIncomingCall(ring);
+    };
+    const onCallRingStop = ({ callId }: CallRingStopPayload) => {
+      const ring = useChatStore.getState().incomingCall;
+      if (ring?.callId === callId) useChatStore.getState().setIncomingCall(null);
+    };
+    const onMeetingChanged = (_p: MeetingScheduledPayload | MeetingCancelledPayload) => {
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
+    };
     const onUnreadUpdate = (state: UnreadState) => applyUnreadUpdate(queryClient, state);
     const onChannelRead = ({ channelId, userId, lastReadMessageId, lastReadAt }: ChannelReadPayload) => {
       queryClient.setQueryData<{ receipts: ReadReceiptDto[] }>(['reads', channelId], (data) => {
@@ -228,6 +248,10 @@ export default function AppShell() {
     socket.on(ServerEvents.CallStarted, onCallStarted);
     socket.on(ServerEvents.CallEnded, onCallEnded);
     socket.on(ServerEvents.CallRecording, onCallRecording);
+    socket.on(ServerEvents.CallRing, onCallRing);
+    socket.on(ServerEvents.CallRingStop, onCallRingStop);
+    socket.on(ServerEvents.MeetingScheduled, onMeetingChanged);
+    socket.on(ServerEvents.MeetingCancelled, onMeetingChanged);
     socket.on(ServerEvents.UnreadUpdate, onUnreadUpdate);
     socket.on(ServerEvents.ChannelRead, onChannelRead);
     socket.on(ServerEvents.UserUpdated, onUserUpdated);
@@ -258,6 +282,10 @@ export default function AppShell() {
       socket.off(ServerEvents.CallStarted, onCallStarted);
       socket.off(ServerEvents.CallEnded, onCallEnded);
       socket.off(ServerEvents.CallRecording, onCallRecording);
+      socket.off(ServerEvents.CallRing, onCallRing);
+      socket.off(ServerEvents.CallRingStop, onCallRingStop);
+      socket.off(ServerEvents.MeetingScheduled, onMeetingChanged);
+      socket.off(ServerEvents.MeetingCancelled, onMeetingChanged);
       socket.off(ServerEvents.UnreadUpdate, onUnreadUpdate);
       socket.off(ServerEvents.ChannelRead, onChannelRead);
       socket.off(ServerEvents.UserUpdated, onUserUpdated);
@@ -284,6 +312,7 @@ export default function AppShell() {
   const detailsPanelOpen = useChatStore((s) => s.detailsPanelOpen);
   const threadOpenFor = useChatStore((s) => s.threadOpenFor);
   const forwardMessage = useChatStore((s) => s.forwardMessage);
+  const incomingCall = useChatStore((s) => s.incomingCall);
 
   return (
     <div className="app-shell">
@@ -303,6 +332,7 @@ export default function AppShell() {
       )}
       {currentCall && <CallOverlay key={currentCall.call.id} join={currentCall} />}
       {forwardMessage && <ForwardModal message={forwardMessage} />}
+      {incomingCall && !currentCall && <IncomingCallModal ring={incomingCall} />}
     </div>
   );
 }

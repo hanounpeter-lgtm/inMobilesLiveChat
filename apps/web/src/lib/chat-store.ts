@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { JoinCallResponse, MessageDto } from '@inmobiles/shared-types';
+import type { CallRingPayload, JoinCallResponse, MessageDto } from '@inmobiles/shared-types';
 
 interface TypingUser {
   id: string;
@@ -25,6 +25,9 @@ interface ChatState {
   /** Message queued for forwarding — AppShell renders the picker when set. */
   forwardMessage: MessageDto | null;
   setForwardMessage: (message: MessageDto | null) => void;
+  /** Incoming DM call ringing — AppShell renders the accept/decline prompt. */
+  incomingCall: CallRingPayload | null;
+  setIncomingCall: (call: CallRingPayload | null) => void;
   typingByChannel: Record<string, TypingUser[]>;
   onlineUserIds: Set<string>;
   setActiveChannel: (id: string | null) => void;
@@ -47,6 +50,8 @@ export const useChatStore = create<ChatState>((set) => ({
   setComposerFiles: (files) => set({ composerFiles: files }),
   forwardMessage: null,
   setForwardMessage: (message) => set({ forwardMessage: message }),
+  incomingCall: null,
+  setIncomingCall: (call) => set({ incomingCall: call }),
   typingByChannel: {},
   onlineUserIds: new Set(),
 
