@@ -24,12 +24,18 @@ import {
   IconAt,
   IconCalendar,
   IconChart,
+  IconCheck,
+  IconChevronLeft,
   IconFile,
+  IconHash,
+  IconHome,
   IconLock,
   IconLogOut,
+  IconMegaphone,
   IconPlus,
   IconSearch,
   IconStar,
+  IconTarget,
   IconUserPlus,
   IconUsers,
 } from '../components/icons';
@@ -54,21 +60,15 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
   const onlineUserIds = useChatStore((s) => s.onlineUserIds);
   const { unreads } = useUnreads();
   const [showDmPicker, setShowDmPicker] = useState(false);
-  const [showCreate, setShowCreate] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
-  const [showActivity, setShowActivity] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [showDirectory, setShowDirectory] = useState(false);
-  const [showSaved, setShowSaved] = useState(false);
-  const [showInvites, setShowInvites] = useState(false);
-  const [showTasks, setShowTasks] = useState(false);
-  const [showFiles, setShowFiles] = useState(false);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [showAdmin, setShowAdmin] = useState(false);
-  const [showBroadcast, setShowBroadcast] = useState(false);
+  const modal = useChatStore((s) => s.modal);
+  const openModal = useChatStore((s) => s.openModal);
+  const closeModal = useChatStore((s) => s.closeModal);
   const openHome = useChatStore((s) => s.openHome);
+  const collapsed = useChatStore((s) => s.sidebarCollapsed);
+  const toggleSidebar = useChatStore((s) => s.toggleSidebar);
   const setCurrentCall = useChatStore((s) => s.setCurrentCall);
 
   const joinByCode = async () => {
@@ -105,7 +105,8 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
     const onKey = (e: globalThis.KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setShowSearch((v) => !v);
+        const s = useChatStore.getState();
+        s.modal === 'search' ? s.closeModal() : s.openModal('search');
       }
     };
     document.addEventListener('keydown', onKey);
@@ -183,7 +184,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
   };
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
         <span className="workspace-brand">
           <img src="/logo.svg" alt="" className="logo-mark small" />
@@ -198,80 +199,71 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
             <IconUserPlus size={16} />
           </button>
         )}
+        <button
+          className="icon-btn sidebar-collapse-btn"
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          onClick={toggleSidebar}
+        >
+          <IconChevronLeft size={16} />
+        </button>
       </div>
 
       <div className="sidebar-scroll">
         <div className="sidebar-section">
-          <button className="channel-item" onClick={openHome}>
-            <span className="channel-hash">🏠</span>
+          <button className="channel-item" onClick={openHome} title="Home">
+            <span className="channel-hash"><IconHome size={15} /></span>
             <span className="channel-label">Home</span>
           </button>
-          <button className="channel-item" onClick={() => setShowSearch(true)}>
-            <span className="channel-hash">
-              <IconSearch size={14} />
-            </span>
+          <button className="channel-item" onClick={() => openModal('search')} title="Search">
+            <span className="channel-hash"><IconSearch size={15} /></span>
             <span className="channel-label">Search</span>
             <span className="muted kbd-hint">Ctrl K</span>
           </button>
-          <button className="channel-item" onClick={() => setShowActivity(true)}>
-            <span className="channel-hash">
-              <IconAt size={14} />
-            </span>
+          <button className="channel-item" onClick={() => openModal('activity')} title="Activity">
+            <span className="channel-hash"><IconAt size={15} /></span>
             <span className="channel-label">Activity</span>
             {totalMentions > 0 && <span className="unread-badge">{totalMentions}</span>}
           </button>
-          <button className="channel-item" onClick={() => setShowDirectory(true)}>
-            <span className="channel-hash">
-              <IconUsers size={14} />
-            </span>
+          <button className="channel-item" onClick={() => openModal('directory')} title="Directory">
+            <span className="channel-hash"><IconUsers size={15} /></span>
             <span className="channel-label">Directory</span>
           </button>
-          <button className="channel-item" onClick={() => setShowSaved(true)}>
-            <span className="channel-hash">
-              <IconStar size={14} />
-            </span>
+          <button className="channel-item" onClick={() => openModal('saved')} title="Saved">
+            <span className="channel-hash"><IconStar size={15} /></span>
             <span className="channel-label">Saved</span>
           </button>
-          <button className="channel-item" onClick={() => setShowInvites(true)}>
-            <span className="channel-hash">
-              <IconUserPlus size={14} />
-            </span>
+          <button className="channel-item" onClick={() => openModal('invites')} title="Invites">
+            <span className="channel-hash"><IconUserPlus size={15} /></span>
             <span className="channel-label">Invites</span>
             {pendingInvites > 0 && <span className="unread-badge">{pendingInvites}</span>}
           </button>
-          <button className="channel-item" onClick={() => setShowTasks(true)}>
-            <span className="channel-hash">✓</span>
+          <button className="channel-item" onClick={() => openModal('tasks')} title="Tasks">
+            <span className="channel-hash"><IconCheck size={15} /></span>
             <span className="channel-label">Tasks</span>
           </button>
-          <button className="channel-item" onClick={() => setShowCalendar(true)}>
-            <span className="channel-hash">
-              <IconCalendar size={14} />
-            </span>
+          <button className="channel-item" onClick={() => openModal('calendar')} title="Calendar">
+            <span className="channel-hash"><IconCalendar size={15} /></span>
             <span className="channel-label">Calendar</span>
           </button>
-          <button className="channel-item" onClick={() => setShowFiles(true)}>
-            <span className="channel-hash">
-              <IconFile size={14} />
-            </span>
+          <button className="channel-item" onClick={() => openModal('files')} title="Files">
+            <span className="channel-hash"><IconFile size={15} /></span>
             <span className="channel-label">Files</span>
           </button>
-          <button className="channel-item" onClick={() => setShowBroadcast(true)}>
-            <span className="channel-hash">📣</span>
+          <button className="channel-item" onClick={() => openModal('broadcast')} title="Broadcast">
+            <span className="channel-hash"><IconMegaphone size={15} /></span>
             <span className="channel-label">Broadcast</span>
           </button>
-          <button className="channel-item" onClick={() => void joinByCode()}>
-            <span className="channel-hash">#️⃣</span>
+          <button className="channel-item" onClick={() => void joinByCode()} title="Join by code">
+            <span className="channel-hash"><IconHash size={15} /></span>
             <span className="channel-label">Join by code</span>
           </button>
-          <button className="channel-item" onClick={() => void focusMode()}>
-            <span className="channel-hash">🎯</span>
+          <button className="channel-item" onClick={() => void focusMode()} title="Focus mode">
+            <span className="channel-hash"><IconTarget size={15} /></span>
             <span className="channel-label">Focus mode</span>
           </button>
           {isAdmin && (
-            <button className="channel-item" onClick={() => setShowAdmin(true)}>
-              <span className="channel-hash">
-                <IconChart size={14} />
-              </span>
+            <button className="channel-item" onClick={() => openModal('admin')} title="Admin">
+              <span className="channel-hash"><IconChart size={15} /></span>
               <span className="channel-label">Admin</span>
             </button>
           )}
@@ -288,7 +280,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
         <div className="sidebar-section">
           <div className="sidebar-section-title">
             <span>Channels</span>
-            <button className="icon-btn" title="Create channel" onClick={() => setShowCreate(true)}>
+            <button className="icon-btn" title="Create channel" onClick={() => openModal('create')}>
               <IconPlus size={14} />
             </button>
           </div>
@@ -345,19 +337,19 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
         </button>
       </div>
 
-      {showCreate && <CreateChannelModal onClose={() => setShowCreate(false)} />}
+      {modal === 'create' && <CreateChannelModal onClose={closeModal} />}
       {showInvite && <InvitePeopleModal onClose={() => setShowInvite(false)} />}
-      {showActivity && <ActivityModal onClose={() => setShowActivity(false)} />}
-      {showSearch && <SearchModal onClose={() => setShowSearch(false)} />}
+      {modal === 'activity' && <ActivityModal onClose={closeModal} />}
+      {modal === 'search' && <SearchModal onClose={closeModal} />}
       {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
-      {showDirectory && <DirectoryModal onClose={() => setShowDirectory(false)} />}
-      {showSaved && <SavedMessagesModal onClose={() => setShowSaved(false)} />}
-      {showInvites && <InvitesModal onClose={() => setShowInvites(false)} />}
-      {showTasks && <TasksModal onClose={() => setShowTasks(false)} />}
-      {showCalendar && <CalendarModal onClose={() => setShowCalendar(false)} />}
-      {showFiles && <FilesHubModal onClose={() => setShowFiles(false)} />}
-      {showAdmin && <AdminModal onClose={() => setShowAdmin(false)} />}
-      {showBroadcast && <BroadcastModal onClose={() => setShowBroadcast(false)} />}
+      {modal === 'directory' && <DirectoryModal onClose={closeModal} />}
+      {modal === 'saved' && <SavedMessagesModal onClose={closeModal} />}
+      {modal === 'invites' && <InvitesModal onClose={closeModal} />}
+      {modal === 'tasks' && <TasksModal onClose={closeModal} />}
+      {modal === 'calendar' && <CalendarModal onClose={closeModal} />}
+      {modal === 'files' && <FilesHubModal onClose={closeModal} />}
+      {modal === 'admin' && <AdminModal onClose={closeModal} />}
+      {modal === 'broadcast' && <BroadcastModal onClose={closeModal} />}
     </aside>
   );
 }

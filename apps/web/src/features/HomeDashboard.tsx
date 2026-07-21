@@ -6,11 +6,50 @@ import { useAuth } from '../lib/auth-store';
 import { useUnreads } from '../lib/unreads';
 import { useChatStore } from '../lib/chat-store';
 import type { DirectoryUser } from '../lib/users';
+import {
+  IconAt,
+  IconCalendar,
+  IconChart,
+  IconCheck,
+  IconFile,
+  IconMegaphone,
+  IconSearch,
+  IconStar,
+  IconUserPlus,
+  IconUsers,
+} from '../components/icons';
+
+type TileModal =
+  | 'search'
+  | 'activity'
+  | 'directory'
+  | 'saved'
+  | 'invites'
+  | 'tasks'
+  | 'calendar'
+  | 'files'
+  | 'broadcast'
+  | 'admin';
+
+const TILES: { key: TileModal; label: string; Icon: typeof IconSearch; adminOnly?: boolean }[] = [
+  { key: 'search', label: 'Search', Icon: IconSearch },
+  { key: 'activity', label: 'Activity', Icon: IconAt },
+  { key: 'directory', label: 'Directory', Icon: IconUsers },
+  { key: 'saved', label: 'Saved', Icon: IconStar },
+  { key: 'invites', label: 'Invites', Icon: IconUserPlus },
+  { key: 'tasks', label: 'Tasks', Icon: IconCheck },
+  { key: 'calendar', label: 'Calendar', Icon: IconCalendar },
+  { key: 'files', label: 'Files', Icon: IconFile },
+  { key: 'broadcast', label: 'Broadcast', Icon: IconMegaphone },
+  { key: 'admin', label: 'Admin', Icon: IconChart, adminOnly: true },
+];
 
 /** Landing "Home" view: greeting, live clock, who's online, and unread summary. */
 export default function HomeDashboard({ channels }: { channels: ChannelSummary[] }) {
   const me = useAuth((s) => s.user);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
+  const openModal = useChatStore((s) => s.openModal);
+  const isAdmin = me?.role === 'owner' || me?.role === 'admin';
   const { unreads } = useUnreads();
   const [now, setNow] = useState(() => new Date());
 
@@ -47,6 +86,15 @@ export default function HomeDashboard({ channels }: { channels: ChannelSummary[]
           {greeting}, {me?.displayName?.split(' ')[0]}
         </h1>
         <div className="home-clock">{timeStr}</div>
+      </div>
+
+      <div className="home-tiles">
+        {TILES.filter((t) => !t.adminOnly || isAdmin).map((t) => (
+          <button key={t.key} className="home-tile" onClick={() => openModal(t.key)}>
+            <t.Icon size={22} />
+            <span>{t.label}</span>
+          </button>
+        ))}
       </div>
 
       <div className="home-grid">

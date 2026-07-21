@@ -31,6 +31,25 @@ interface ChatState {
   /** Home dashboard shown instead of a channel. */
   showHome: boolean;
   openHome: () => void;
+  /** Shared modal launched from the sidebar or the dashboard. */
+  modal:
+    | null
+    | 'search'
+    | 'activity'
+    | 'directory'
+    | 'saved'
+    | 'invites'
+    | 'tasks'
+    | 'calendar'
+    | 'files'
+    | 'broadcast'
+    | 'admin'
+    | 'create';
+  openModal: (m: ChatState['modal']) => void;
+  closeModal: () => void;
+  /** Collapsed (icons-only) sidebar. */
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
   typingByChannel: Record<string, TypingUser[]>;
   onlineUserIds: Set<string>;
   setActiveChannel: (id: string | null) => void;
@@ -57,6 +76,11 @@ export const useChatStore = create<ChatState>((set) => ({
   setIncomingCall: (call) => set({ incomingCall: call }),
   showHome: false,
   openHome: () => set({ showHome: true, threadOpenFor: null, detailsPanelOpen: false }),
+  modal: null,
+  openModal: (m) => set({ modal: m }),
+  closeModal: () => set({ modal: null }),
+  sidebarCollapsed: false,
+  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   typingByChannel: {},
   onlineUserIds: new Set(),
 

@@ -3540,6 +3540,77 @@ button:active:not([disabled]) {
   cursor: pointer;
 }
 
+/* ---------- Collapsible sidebar ---------- */
+.sidebar {
+  transition: width 0.18s ease;
+}
+.sidebar-collapse-btn svg {
+  transition: transform 0.18s ease;
+}
+.sidebar.collapsed {
+  width: 62px;
+}
+.sidebar.collapsed .sidebar-collapse-btn svg {
+  transform: rotate(180deg);
+}
+.sidebar.collapsed .workspace-name,
+.sidebar.collapsed .channel-label,
+.sidebar.collapsed .kbd-hint,
+.sidebar.collapsed .sidebar-section-title span,
+.sidebar.collapsed .unread-badge,
+.sidebar.collapsed .me-name,
+.sidebar.collapsed .me-status {
+  display: none;
+}
+.sidebar.collapsed .channel-item,
+.sidebar.collapsed .sidebar-section-title {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+.sidebar.collapsed .channel-hash {
+  margin: 0;
+}
+.sidebar.collapsed .sidebar-header {
+  flex-direction: column;
+  gap: 8px;
+}
+.sidebar.collapsed .me {
+  justify-content: center;
+}
+
+/* ---------- Home dashboard quick tiles ---------- */
+.home-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 10px;
+  max-width: 900px;
+  margin-bottom: 26px;
+}
+.home-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-raised);
+  cursor: pointer;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+.home-tile:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 720px) {
   .sidebar {

@@ -31,6 +31,47 @@ export const IconVideo = (p: IconProps) => (
   </svg>
 );
 
+export const IconHome = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M3 10.5 12 3l9 7.5" />
+    <path d="M5 9.5V21h14V9.5" />
+    <path d="M9 21v-6h6v6" />
+  </svg>
+);
+
+export const IconCheck = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
+
+export const IconMegaphone = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="m3 11 15-5v12L3 13v-2Z" />
+    <path d="M11.6 16.8a3 3 0 1 1-5.2-3" />
+  </svg>
+);
+
+export const IconHash = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18" />
+  </svg>
+);
+
+export const IconTarget = (p: IconProps) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="5" />
+    <circle cx="12" cy="12" r="1" />
+  </svg>
+);
+
+export const IconChevronLeft = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="m15 18-6-6 6-6" />
+  </svg>
+);
+
 export const IconClipboard = (p: IconProps) => (
   <svg {...base(p)}>
     <rect x="8" y="2" width="8" height="4" rx="1" />
