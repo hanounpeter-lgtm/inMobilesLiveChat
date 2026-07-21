@@ -206,6 +206,7 @@ model ScheduledMeeting {
   type        CallType @default(video)
   scheduledAt DateTime @map("scheduled_at") @db.Timestamptz()
   reminded    Boolean  @default(false)
+  joinCode    String?  @unique @map("join_code")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
@@ -214,6 +215,113 @@ model ScheduledMeeting {
   @@index([channelId, scheduledAt])
   @@index([scheduledAt, reminded])
   @@map("scheduled_meetings")
+}
+
+// ---------- Collaboration (polls, tasks, notes, templates, calendar) ----------
+model Poll {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  messageId   String   @unique @map("message_id") @db.Uuid
+  channelId   String   @map("channel_id") @db.Uuid
+  question    String
+  multiple    Boolean  @default(false)
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  options PollOption[]
+
+  @@map("polls")
+}
+
+model PollOption {
+  id     String @id @default(uuid(7)) @db.Uuid
+  pollId String @map("poll_id") @db.Uuid
+  text   String
+
+  poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PollVote[]
+
+  @@index([pollId])
+  @@map("poll_options")
+}
+
+model PollVote {
+  optionId  String   @map("option_id") @db.Uuid
+  pollId    String   @map("poll_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@id([optionId, userId])
+  @@index([pollId])
+  @@map("poll_votes")
+}
+
+model Task {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  channelId   String?   @map("channel_id") @db.Uuid
+  creatorId   String    @map("creator_id") @db.Uuid
+  assigneeId  String?   @map("assignee_id") @db.Uuid
+  title       String
+  done        Boolean   @default(false)
+  dueAt       DateTime? @map("due_at") @db.Timestamptz()
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([channelId])
+  @@index([assigneeId, done])
+  @@index([creatorId, done])
+  @@map("tasks")
+}
+
+model ChannelNote {
+  channelId   String   @id @map("channel_id") @db.Uuid
+  content     String   @default("")
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("channel_notes")
+}
+
+model MessageTemplate {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  title       String
+  body        String
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([workspaceId])
+  @@map("message_templates")
+}
+
+model CalendarEvent {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  title       String
+  description String?
+  startAt     DateTime  @map("start_at") @db.Timestamptz()
+  endAt       DateTime? @map("end_at") @db.Timestamptz()
+  channelId   String?   @map("channel_id") @db.Uuid
+  createdById String    @map("created_by_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  attendees EventAttendee[]
+
+  @@index([workspaceId, startAt])
+  @@map("calendar_events")
+}
+
+model EventAttendee {
+  eventId String @map("event_id") @db.Uuid
+  userId  String @map("user_id") @db.Uuid
+  status  String @default("pending")
+
+  event CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, userId])
+  @@index([userId])
+  @@map("event_attendees")
 }
 
 model ChannelMember {

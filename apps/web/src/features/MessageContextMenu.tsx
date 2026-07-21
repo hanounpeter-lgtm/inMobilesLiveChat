@@ -9,6 +9,7 @@ import { parseSticker } from './stickers';
 
 const GIF_RE = /^!\[GIF\]\((.+)\)$/;
 const AUDIO_RE = /^\[(recording|voice):([0-9a-f-]{36})\]$/;
+const POLL_MARKER_RE = /^\[poll:[0-9a-f-]{36}\]$/;
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '🎉', '😮', '👀'];
 
 export interface MenuState {
@@ -67,7 +68,8 @@ export default function MessageContextMenu({
   const gifMatch = GIF_RE.exec(content);
   const audioMatch = AUDIO_RE.exec(content);
   const isSticker = parseSticker(content) !== null;
-  const isPlainText = !message.isDeleted && !gifMatch && !isSticker && !audioMatch;
+  const isPoll = POLL_MARKER_RE.test(content);
+  const isPlainText = !message.isDeleted && !gifMatch && !isSticker && !audioMatch && !isPoll;
 
   const own = user?.id === message.author.id;
   const isWorkspaceAdmin = user?.role === 'owner' || user?.role === 'admin';

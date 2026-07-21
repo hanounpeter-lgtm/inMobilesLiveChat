@@ -17,12 +17,14 @@ import MessageItem from './MessageItem';
 import CallBanner from './CallBanner';
 import MeetingsBanner from './MeetingsBanner';
 import ScheduleMeetingModal from './ScheduleMeetingModal';
+import NotesModal from './NotesModal';
 import MessageContextMenu, { type MenuState } from './MessageContextMenu';
 import { useMarkRead } from '../lib/use-mark-read';
 import { useUnreads } from '../lib/unreads';
 import { isSystemEvent, shouldGroup, systemEventText } from '../lib/message-utils';
 import {
   IconCalendar,
+  IconClipboard,
   IconInfo,
   IconLock,
   IconPhone,
@@ -113,6 +115,7 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
   const dragDepth = useRef(0);
   const setComposerFiles = useChatStore((s) => s.setComposerFiles);
 
@@ -249,6 +252,9 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
           >
             <IconVideo />
           </button>
+          <button className="call-btn" title="Shared notes" onClick={() => setShowNotes(true)}>
+            <IconClipboard />
+          </button>
           <button
             className="call-btn"
             title="Schedule a meeting"
@@ -270,6 +276,13 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
       <MeetingsBanner channelId={channel.id} />
       {showSchedule && (
         <ScheduleMeetingModal channelId={channel.id} onClose={() => setShowSchedule(false)} />
+      )}
+      {showNotes && (
+        <NotesModal
+          channelId={channel.id}
+          channelName={channelTitle(channel)}
+          onClose={() => setShowNotes(false)}
+        />
       )}
 
       <div className="message-scroll" ref={scrollRef}>

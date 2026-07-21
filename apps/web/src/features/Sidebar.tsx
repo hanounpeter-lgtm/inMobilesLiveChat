@@ -12,10 +12,17 @@ import ProfileModal from './ProfileModal';
 import DirectoryModal from './DirectoryModal';
 import SavedMessagesModal from './SavedMessagesModal';
 import InvitesModal, { invitationsKey } from './InvitesModal';
+import TasksModal from './TasksModal';
+import FilesHubModal from './FilesHubModal';
+import CalendarModal from './CalendarModal';
+import AdminModal from './AdminModal';
 import { TimeclockWidget } from './Timeclock';
 import { useUnreads } from '../lib/unreads';
 import {
   IconAt,
+  IconCalendar,
+  IconChart,
+  IconFile,
   IconLock,
   IconLogOut,
   IconPlus,
@@ -54,6 +61,10 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
   const [showDirectory, setShowDirectory] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
   const [showInvites, setShowInvites] = useState(false);
+  const [showTasks, setShowTasks] = useState(false);
+  const [showFiles, setShowFiles] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
 
   // Ctrl/Cmd+K opens search from anywhere.
   useEffect(() => {
@@ -190,6 +201,30 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
             <span className="channel-label">Invites</span>
             {pendingInvites > 0 && <span className="unread-badge">{pendingInvites}</span>}
           </button>
+          <button className="channel-item" onClick={() => setShowTasks(true)}>
+            <span className="channel-hash">✓</span>
+            <span className="channel-label">Tasks</span>
+          </button>
+          <button className="channel-item" onClick={() => setShowCalendar(true)}>
+            <span className="channel-hash">
+              <IconCalendar size={14} />
+            </span>
+            <span className="channel-label">Calendar</span>
+          </button>
+          <button className="channel-item" onClick={() => setShowFiles(true)}>
+            <span className="channel-hash">
+              <IconFile size={14} />
+            </span>
+            <span className="channel-label">Files</span>
+          </button>
+          {isAdmin && (
+            <button className="channel-item" onClick={() => setShowAdmin(true)}>
+              <span className="channel-hash">
+                <IconChart size={14} />
+              </span>
+              <span className="channel-label">Admin</span>
+            </button>
+          )}
         </div>
         {starred.length > 0 && (
           <div className="sidebar-section">
@@ -268,6 +303,10 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
       {showDirectory && <DirectoryModal onClose={() => setShowDirectory(false)} />}
       {showSaved && <SavedMessagesModal onClose={() => setShowSaved(false)} />}
       {showInvites && <InvitesModal onClose={() => setShowInvites(false)} />}
+      {showTasks && <TasksModal onClose={() => setShowTasks(false)} />}
+      {showCalendar && <CalendarModal onClose={() => setShowCalendar(false)} />}
+      {showFiles && <FilesHubModal onClose={() => setShowFiles(false)} />}
+      {showAdmin && <AdminModal onClose={() => setShowAdmin(false)} />}
     </aside>
   );
 }

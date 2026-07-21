@@ -592,6 +592,148 @@ export const MeetingDto = z.object({
 });
 export type MeetingDto = z.infer<typeof MeetingDto>;
 
+// ---------- Polls ----------
+export const CreatePollRequest = z.object({
+  question: z.string().min(1).max(200),
+  options: z.array(z.string().min(1).max(100)).min(2).max(10),
+  multiple: z.boolean().default(false),
+});
+export type CreatePollRequest = z.infer<typeof CreatePollRequest>;
+
+export const PollOptionDto = z.object({
+  id: z.string().uuid(),
+  text: z.string(),
+  votes: z.number().int(),
+  voters: z.array(z.string().uuid()),
+});
+export const PollDto = z.object({
+  id: z.string().uuid(),
+  channelId: z.string().uuid(),
+  question: z.string(),
+  multiple: z.boolean(),
+  options: z.array(PollOptionDto),
+  totalVotes: z.number().int(),
+  myVotes: z.array(z.string().uuid()),
+});
+export type PollDto = z.infer<typeof PollDto>;
+export const PollUpdatePayload = z.object({ pollId: z.string().uuid(), channelId: z.string().uuid() });
+export type PollUpdatePayload = z.infer<typeof PollUpdatePayload>;
+
+// ---------- Message templates ----------
+export const MessageTemplateDto = z.object({
+  id: z.string(),
+  title: z.string(),
+  body: z.string(),
+  builtin: z.boolean(),
+});
+export type MessageTemplateDto = z.infer<typeof MessageTemplateDto>;
+export const CreateTemplateRequest = z.object({
+  title: z.string().min(1).max(120),
+  body: z.string().min(1).max(4000),
+});
+export type CreateTemplateRequest = z.infer<typeof CreateTemplateRequest>;
+
+// ---------- Tasks ----------
+export const TaskDto = z.object({
+  id: z.string().uuid(),
+  channelId: z.string().uuid().nullable(),
+  title: z.string(),
+  done: z.boolean(),
+  dueAt: z.string().datetime().nullable(),
+  creator: z.object({ id: z.string().uuid(), displayName: z.string() }),
+  assignee: z.object({ id: z.string().uuid(), displayName: z.string() }).nullable(),
+  createdAt: z.string().datetime(),
+});
+export type TaskDto = z.infer<typeof TaskDto>;
+export const CreateTaskRequest = z.object({
+  title: z.string().min(1).max(300),
+  channelId: z.string().uuid().nullable().optional(),
+  assigneeId: z.string().uuid().nullable().optional(),
+  dueAt: z.string().datetime().nullable().optional(),
+});
+export type CreateTaskRequest = z.infer<typeof CreateTaskRequest>;
+export const UpdateTaskRequest = z.object({
+  title: z.string().min(1).max(300).optional(),
+  done: z.boolean().optional(),
+  assigneeId: z.string().uuid().nullable().optional(),
+  dueAt: z.string().datetime().nullable().optional(),
+});
+export type UpdateTaskRequest = z.infer<typeof UpdateTaskRequest>;
+
+// ---------- Channel notes ----------
+export const ChannelNoteDto = z.object({
+  channelId: z.string().uuid(),
+  content: z.string(),
+  updatedAt: z.string().datetime().nullable(),
+  updatedBy: z.string().nullable(),
+});
+export type ChannelNoteDto = z.infer<typeof ChannelNoteDto>;
+export const UpdateNoteRequest = z.object({ content: z.string().max(50000) });
+export type UpdateNoteRequest = z.infer<typeof UpdateNoteRequest>;
+
+// ---------- Files hub ----------
+export const FileHubItemDto = z.object({
+  id: z.string().uuid(),
+  filename: z.string(),
+  mimeType: z.string(),
+  sizeBytes: z.number(),
+  isImage: z.boolean(),
+  channelId: z.string().uuid().nullable(),
+  channelName: z.string().nullable(),
+  uploaderName: z.string(),
+  createdAt: z.string().datetime(),
+});
+export type FileHubItemDto = z.infer<typeof FileHubItemDto>;
+
+// ---------- Calendar ----------
+export const CreateEventRequest = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(2000).nullable().optional(),
+  startAt: z.string().datetime(),
+  endAt: z.string().datetime().nullable().optional(),
+  channelId: z.string().uuid().nullable().optional(),
+  attendeeIds: z.array(z.string().uuid()).max(100).optional(),
+});
+export type CreateEventRequest = z.infer<typeof CreateEventRequest>;
+export const EventAttendeeDto = z.object({
+  userId: z.string().uuid(),
+  displayName: z.string(),
+  status: z.enum(['pending', 'accepted', 'declined']),
+});
+export const CalendarEventDto = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  description: z.string().nullable(),
+  startAt: z.string().datetime(),
+  endAt: z.string().datetime().nullable(),
+  channelId: z.string().uuid().nullable(),
+  createdBy: z.object({ id: z.string().uuid(), displayName: z.string() }),
+  attendees: z.array(EventAttendeeDto),
+  myStatus: z.enum(['pending', 'accepted', 'declined']).nullable(),
+});
+export type CalendarEventDto = z.infer<typeof CalendarEventDto>;
+
+// ---------- Admin dashboard ----------
+export const AdminStatsDto = z.object({
+  totals: z.object({
+    users: z.number().int(),
+    channels: z.number().int(),
+    messages: z.number().int(),
+    calls: z.number().int(),
+  }),
+  activity: z.array(z.object({ date: z.string(), messages: z.number().int() })),
+});
+export type AdminStatsDto = z.infer<typeof AdminStatsDto>;
+export const AdminUserDto = z.object({
+  id: z.string().uuid(),
+  email: z.string(),
+  displayName: z.string(),
+  role: z.enum(['owner', 'admin', 'member', 'guest']),
+  active: z.boolean(),
+  createdAt: z.string().datetime(),
+});
+export type AdminUserDto = z.infer<typeof AdminUserDto>;
+
 export const MeetingScheduledPayload = z.object({ meeting: MeetingDto });
 export type MeetingScheduledPayload = z.infer<typeof MeetingScheduledPayload>;
 

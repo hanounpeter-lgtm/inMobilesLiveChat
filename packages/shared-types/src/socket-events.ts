@@ -30,6 +30,9 @@ export const ServerEvents = {
   ScreenshareGranted: 'call:screenshare_granted',
   MeetingScheduled: 'meeting:scheduled',
   MeetingCancelled: 'meeting:cancelled',
+  PollUpdate: 'poll:update',
+  TaskUpdate: 'task:update',
+  NoteUpdate: 'note:update',
 } as const;
 
 export const ClientEvents = {

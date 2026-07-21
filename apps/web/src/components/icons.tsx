@@ -31,6 +31,23 @@ export const IconVideo = (p: IconProps) => (
   </svg>
 );
 
+export const IconClipboard = (p: IconProps) => (
+  <svg {...base(p)}>
+    <rect x="8" y="2" width="8" height="4" rx="1" />
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+    <path d="M9 12h6M9 16h4" />
+  </svg>
+);
+
+export const IconChart = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M3 3v18h18" />
+    <rect x="7" y="10" width="3" height="7" />
+    <rect x="12" y="6" width="3" height="11" />
+    <rect x="17" y="13" width="3" height="4" />
+  </svg>
+);
+
 export const IconCalendar = (p: IconProps) => (
   <svg {...base(p)}>
     <rect x="3" y="4" width="18" height="18" rx="2" />

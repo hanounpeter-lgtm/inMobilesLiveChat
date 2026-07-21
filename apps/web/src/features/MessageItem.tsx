@@ -16,6 +16,7 @@ import AudioPlayer from '../components/AudioPlayer';
 import { useUsersById } from '../lib/users';
 import { parseSticker, stickerUrl } from './stickers';
 import AttachmentList from './Attachments';
+import PollMessage, { POLL_RE } from './PollMessage';
 
 const AUDIO_MESSAGE_RE = /^\[(recording|voice):([0-9a-f-]{36})\]$/;
 
@@ -232,6 +233,10 @@ export default function MessageItem({
           <InlineEdit message={message} onDone={onEditDone} />
         ) : (
           (() => {
+            const pollMatch = POLL_RE.exec(message.content.trim());
+            if (pollMatch) {
+              return <PollMessage pollId={pollMatch[1]} />;
+            }
             const audioMatch = AUDIO_MESSAGE_RE.exec(message.content.trim());
             if (audioMatch) {
               return <AudioMessage kind={audioMatch[1]} attachmentId={audioMatch[2]} />;

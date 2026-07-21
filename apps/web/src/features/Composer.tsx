@@ -14,7 +14,17 @@ import { useAuth } from '../lib/auth-store';
 import { useChatStore } from '../lib/chat-store';
 import StickerPicker from './StickerPicker';
 import GifPicker from './GifPicker';
-import { IconFile, IconMic, IconPaperclip, IconSmile, IconX } from '../components/icons';
+import {
+  IconChart,
+  IconClipboard,
+  IconFile,
+  IconMic,
+  IconPaperclip,
+  IconSmile,
+  IconX,
+} from '../components/icons';
+import CreatePollModal from './CreatePollModal';
+import type { MessageTemplateDto } from '@inmobiles/shared-types';
 import { stickerContent, type Sticker } from './stickers';
 import type { GifDto } from '@inmobiles/shared-types';
 
@@ -64,6 +74,13 @@ export default function Composer({
 }) {
   const user = useAuth((s) => s.user);
   const [value, setValue] = useState('');
+  const [showPoll, setShowPoll] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const templatesQuery = useQuery({
+    queryKey: ['templates'],
+    queryFn: () => api<{ templates: MessageTemplateDto[] }>('/templates'),
+    enabled: showTemplates,
+  });
   const [showStickers, setShowStickers] = useState(false);
   const [showGifs, setShowGifs] = useState(false);
   const [voiceState, setVoiceState] = useState<'idle' | 'recording' | 'sending'>('idle');
@@ -474,6 +491,42 @@ export default function Composer({
       >
         <IconPaperclip />
       </button>
+      {!parentMessageId && (
+        <button className="sticker-btn" title="Create a poll" onClick={() => setShowPoll(true)}>
+          <IconChart />
+        </button>
+      )}
+      <div className="template-wrap">
+        <button
+          className="sticker-btn"
+          title="Message templates"
+          onClick={() => setShowTemplates((v) => !v)}
+        >
+          <IconClipboard />
+        </button>
+        {showTemplates && (
+          <div className="template-menu">
+            {(templatesQuery.data?.templates ?? []).map((t) => (
+              <button
+                key={t.id}
+                className="template-item"
+                onClick={() => {
+                  setValue((v) => (v ? `${v}\n${t.body}` : t.body));
+                  setShowTemplates(false);
+                  textareaRef.current?.focus();
+                }}
+              >
+                <span className="template-title">{t.title}</span>
+                <span className="template-preview muted">{t.body.slice(0, 60)}</span>
+              </button>
+            ))}
+            {(templatesQuery.data?.templates.length ?? 0) === 0 && (
+              <div className="muted template-empty">No templates</div>
+            )}
+          </div>
+        )}
+      </div>
+      {showPoll && <CreatePollModal channelId={channel.id} onClose={() => setShowPoll(false)} />}
       <input
         ref={fileInputRef}
         type="file"
