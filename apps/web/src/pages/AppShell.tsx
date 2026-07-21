@@ -170,6 +170,8 @@ export default function AppShell() {
       queryClient.invalidateQueries({ queryKey: ['channel-members', payload.channelId] });
       queryClient.invalidateQueries({ queryKey: ['channels'] });
     };
+    const onInviteChanged = () =>
+      queryClient.invalidateQueries({ queryKey: ['invitations'] });
     const onCallStarted = ({ call }: CallStartedPayload) =>
       queryClient.setQueryData(['call', call.channelId], { call });
     const onCallEnded = ({ channelId }: CallEndedPayload) => {
@@ -245,6 +247,8 @@ export default function AppShell() {
     socket.on(ServerEvents.ChannelRemoved, onChannelRemoved);
     socket.on(ServerEvents.ChannelMemberJoined, onMembersChanged);
     socket.on(ServerEvents.ChannelMemberLeft, onMembersChanged);
+    socket.on(ServerEvents.ChannelInviteReceived, onInviteChanged);
+    socket.on(ServerEvents.ChannelInviteResolved, onInviteChanged);
     socket.on(ServerEvents.CallStarted, onCallStarted);
     socket.on(ServerEvents.CallEnded, onCallEnded);
     socket.on(ServerEvents.CallRecording, onCallRecording);
@@ -279,6 +283,8 @@ export default function AppShell() {
       socket.off(ServerEvents.ChannelRemoved, onChannelRemoved);
       socket.off(ServerEvents.ChannelMemberJoined, onMembersChanged);
       socket.off(ServerEvents.ChannelMemberLeft, onMembersChanged);
+      socket.off(ServerEvents.ChannelInviteReceived, onInviteChanged);
+      socket.off(ServerEvents.ChannelInviteResolved, onInviteChanged);
       socket.off(ServerEvents.CallStarted, onCallStarted);
       socket.off(ServerEvents.CallEnded, onCallEnded);
       socket.off(ServerEvents.CallRecording, onCallRecording);

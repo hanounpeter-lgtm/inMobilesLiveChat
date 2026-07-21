@@ -186,7 +186,8 @@ export class ChannelsService {
         topic: dto.topic,
         description: dto.description,
         createdById: userId,
-        members: { create: [userId, ...inviteeIds].map((id) => ({ userId: id })) },
+        // Only the creator joins immediately; invitees get an invite to accept.
+        members: { create: [{ userId }] },
       },
       include: memberInclude,
     });
@@ -196,12 +197,112 @@ export class ChannelsService {
         channel: this.toSummary(channel, userId),
       });
     }
-    for (const id of inviteeIds) {
-      this.realtime.toUser(id, ServerEvents.ChannelCreated, {
-        channel: this.toSummary(channel, id),
+    await this.inviteToChannel(channel.id, userId, inviteeIds);
+    return this.toSummary(channel, userId);
+  }
+
+  /** Create pending invites for the given users and ring their inboxes. Skips
+   * anyone already a member or already invited. Used by create + addMembers. */
+  private async inviteToChannel(channelId: string, inviterId: string, inviteeIds: string[]) {
+    if (inviteeIds.length === 0) return;
+    const [existingMembers, existingInvites, channel, inviter] = await Promise.all([
+      this.prisma.channelMember.findMany({
+        where: { channelId, userId: { in: inviteeIds } },
+        select: { userId: true },
+      }),
+      this.prisma.channelInvitation.findMany({
+        where: { channelId, inviteeId: { in: inviteeIds } },
+        select: { inviteeId: true },
+      }),
+      this.prisma.channel.findUniqueOrThrow({
+        where: { id: channelId },
+        select: { id: true, name: true, type: true, description: true, _count: { select: { members: true } } },
+      }),
+      this.prisma.user.findUniqueOrThrow({
+        where: { id: inviterId },
+        select: { id: true, displayName: true, avatarUrl: true },
+      }),
+    ]);
+    const skip = new Set([
+      ...existingMembers.map((m) => m.userId),
+      ...existingInvites.map((i) => i.inviteeId),
+    ]);
+    const fresh = inviteeIds.filter((id) => !skip.has(id));
+    for (const inviteeId of fresh) {
+      const invitation = await this.prisma.channelInvitation.create({
+        data: { channelId, inviterId, inviteeId },
+      });
+      this.realtime.toUser(inviteeId, ServerEvents.ChannelInviteReceived, {
+        invitation: {
+          id: invitation.id,
+          channel: {
+            id: channel.id,
+            name: channel.name,
+            type: channel.type,
+            description: channel.description,
+            memberCount: channel._count.members,
+          },
+          inviter,
+          createdAt: invitation.createdAt.toISOString(),
+        },
       });
     }
-    return this.toSummary(channel, userId);
+  }
+
+  async listInvitations(userId: string) {
+    const rows = await this.prisma.channelInvitation.findMany({
+      where: { inviteeId: userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        inviter: { select: { id: true, displayName: true, avatarUrl: true } },
+        channel: {
+          select: { id: true, name: true, type: true, description: true, _count: { select: { members: true } } },
+        },
+      },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      channel: {
+        id: r.channel.id,
+        name: r.channel.name,
+        type: r.channel.type,
+        description: r.channel.description,
+        memberCount: r.channel._count.members,
+      },
+      inviter: r.inviter,
+      createdAt: r.createdAt.toISOString(),
+    }));
+  }
+
+  async acceptInvitation(invitationId: string, userId: string): Promise<ChannelSummary> {
+    const invite = await this.prisma.channelInvitation.findUnique({ where: { id: invitationId } });
+    if (!invite || invite.inviteeId !== userId) throw new NotFoundException('Invitation not found');
+    await this.prisma.channelMember.upsert({
+      where: { channelId_userId: { channelId: invite.channelId, userId } },
+      update: {},
+      create: { channelId: invite.channelId, userId },
+    });
+    await this.prisma.channelInvitation.delete({ where: { id: invitationId } });
+
+    const channel = await this.prisma.channel.findUniqueOrThrow({
+      where: { id: invite.channelId },
+      include: memberInclude,
+    });
+    const summary = this.toSummary(channel, userId);
+    this.realtime.toChannel(invite.channelId, ServerEvents.ChannelMemberJoined, {
+      channelId: invite.channelId,
+      userId,
+    });
+    this.realtime.toUser(userId, ServerEvents.ChannelCreated, { channel: summary });
+    this.realtime.toUser(userId, ServerEvents.ChannelInviteResolved, { invitationId });
+    return summary;
+  }
+
+  async declineInvitation(invitationId: string, userId: string): Promise<void> {
+    const invite = await this.prisma.channelInvitation.findUnique({ where: { id: invitationId } });
+    if (!invite || invite.inviteeId !== userId) throw new NotFoundException('Invitation not found');
+    await this.prisma.channelInvitation.delete({ where: { id: invitationId } });
+    this.realtime.toUser(userId, ServerEvents.ChannelInviteResolved, { invitationId });
   }
 
   async join(channelId: string, userId: string): Promise<ChannelSummary> {
@@ -367,27 +468,9 @@ export class ChannelsService {
       throw new BadRequestException('All added users must belong to the workspace');
     }
 
-    await this.prisma.channelMember.createMany({
-      data: targets.map((id) => ({ channelId, userId: id })),
-      skipDuplicates: true,
-    });
-
-    const added = await this.listMembers(channelId, userId);
-    const addedDtos = added.filter((m) => targets.includes(m.id));
-    this.realtime.toChannel(channelId, ServerEvents.ChannelMemberJoined, {
-      channelId,
-      users: addedDtos,
-    });
-    const fresh = await this.prisma.channel.findUniqueOrThrow({
-      where: { id: channelId },
-      include: memberInclude,
-    });
-    for (const id of targets) {
-      this.realtime.toUser(id, ServerEvents.ChannelCreated, {
-        channel: this.toSummary(fresh, id),
-      });
-    }
-    return addedDtos;
+    // Send invites the targets must accept, rather than adding them outright.
+    await this.inviteToChannel(channelId, userId, targets);
+    return [];
   }
 
   /**

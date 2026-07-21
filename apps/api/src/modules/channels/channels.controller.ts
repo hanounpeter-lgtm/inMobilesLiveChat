@@ -121,3 +121,26 @@ export class InvitesController {
     return this.channels.acceptInvite(token, userId);
   }
 }
+
+/** Channel invitation inbox — pending invites the user can accept or decline. */
+@Controller()
+@UseGuards(JwtAuthGuard)
+export class InvitationsController {
+  constructor(private readonly channels: ChannelsService) {}
+
+  @Get('me/invitations')
+  async list(@CurrentUserId() userId: string) {
+    return { invitations: await this.channels.listInvitations(userId) };
+  }
+
+  @Post('invitations/:id/accept')
+  acceptInvitation(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.channels.acceptInvitation(id, userId);
+  }
+
+  @Post('invitations/:id/decline')
+  @HttpCode(204)
+  async declineInvitation(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) id: string) {
+    await this.channels.declineInvitation(id, userId);
+  }
+}

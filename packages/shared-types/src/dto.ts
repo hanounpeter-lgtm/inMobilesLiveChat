@@ -120,6 +120,26 @@ export const CreateChannelRequest = z.object({
 });
 export type CreateChannelRequest = z.infer<typeof CreateChannelRequest>;
 
+export const ChannelInvitationDto = z.object({
+  id: z.string().uuid(),
+  channel: z.object({
+    id: z.string().uuid(),
+    name: z.string().nullable(),
+    type: ChannelType,
+    description: z.string().nullable(),
+    memberCount: z.number().int(),
+  }),
+  inviter: z.object({ id: z.string().uuid(), displayName: z.string(), avatarUrl: z.string().nullable() }),
+  createdAt: z.string().datetime(),
+});
+export type ChannelInvitationDto = z.infer<typeof ChannelInvitationDto>;
+
+export const ChannelInviteReceivedPayload = z.object({ invitation: ChannelInvitationDto });
+export type ChannelInviteReceivedPayload = z.infer<typeof ChannelInviteReceivedPayload>;
+
+export const ChannelInviteResolvedPayload = z.object({ invitationId: z.string().uuid() });
+export type ChannelInviteResolvedPayload = z.infer<typeof ChannelInviteResolvedPayload>;
+
 export const UpdateChannelRequest = z
   .object({
     name: channelName.optional(),

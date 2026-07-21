@@ -18,6 +18,8 @@ export const ServerEvents = {
   ChannelMemberJoined: 'channel:member_joined',
   ChannelMemberLeft: 'channel:member_left',
   ChannelRemoved: 'channel:removed',
+  ChannelInviteReceived: 'channel:invite_received',
+  ChannelInviteResolved: 'channel:invite_resolved',
   UserUpdated: 'user:updated',
   TimeclockUpdate: 'timeclock:update',
   CallStarted: 'call:started',

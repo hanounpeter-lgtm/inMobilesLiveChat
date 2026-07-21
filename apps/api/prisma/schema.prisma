@@ -86,6 +86,8 @@ model User {
   clockEvents          WorkClockEvent[]
   savedMessages        SavedMessage[]
   scheduledMeetings    ScheduledMeeting[]
+  invitationsSent      ChannelInvitation[] @relation("InvitationsSent")
+  invitationsReceived  ChannelInvitation[] @relation("InvitationsReceived")
 
   @@map("users")
 }
@@ -158,10 +160,27 @@ model Channel {
   calls     Call[]
   invites   ChannelInvite[]
   meetings  ScheduledMeeting[]
+  invitations ChannelInvitation[]
 
   @@unique([workspaceId, name])
   @@index([workspaceId, type])
   @@map("channels")
+}
+
+model ChannelInvitation {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  channelId String   @map("channel_id") @db.Uuid
+  inviterId String   @map("inviter_id") @db.Uuid
+  inviteeId String   @map("invitee_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  inviter User    @relation("InvitationsSent", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee User    @relation("InvitationsReceived", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, inviteeId])
+  @@index([inviteeId, createdAt(sort: Desc)])
+  @@map("channel_invitations")
 }
 
 model SavedMessage {

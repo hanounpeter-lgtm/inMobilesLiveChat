@@ -11,6 +11,7 @@ import SearchModal from './SearchModal';
 import ProfileModal from './ProfileModal';
 import DirectoryModal from './DirectoryModal';
 import SavedMessagesModal from './SavedMessagesModal';
+import InvitesModal, { invitationsKey } from './InvitesModal';
 import { TimeclockWidget } from './Timeclock';
 import { useUnreads } from '../lib/unreads';
 import {
@@ -52,6 +53,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showDirectory, setShowDirectory] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
+  const [showInvites, setShowInvites] = useState(false);
 
   // Ctrl/Cmd+K opens search from anywhere.
   useEffect(() => {
@@ -72,6 +74,12 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
     queryFn: () => api<{ users: DirectoryUser[] }>('/users'),
     enabled: showDmPicker,
   });
+
+  const invitesQuery = useQuery({
+    queryKey: invitationsKey,
+    queryFn: () => api<{ invitations: { id: string }[] }>('/me/invitations'),
+  });
+  const pendingInvites = invitesQuery.data?.invitations.length ?? 0;
 
   const openDm = useMutation({
     mutationFn: (memberId: string) =>
@@ -175,6 +183,13 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
             </span>
             <span className="channel-label">Saved</span>
           </button>
+          <button className="channel-item" onClick={() => setShowInvites(true)}>
+            <span className="channel-hash">
+              <IconUserPlus size={14} />
+            </span>
+            <span className="channel-label">Invites</span>
+            {pendingInvites > 0 && <span className="unread-badge">{pendingInvites}</span>}
+          </button>
         </div>
         {starred.length > 0 && (
           <div className="sidebar-section">
@@ -252,6 +267,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
       {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
       {showDirectory && <DirectoryModal onClose={() => setShowDirectory(false)} />}
       {showSaved && <SavedMessagesModal onClose={() => setShowSaved(false)} />}
+      {showInvites && <InvitesModal onClose={() => setShowInvites(false)} />}
     </aside>
   );
 }
