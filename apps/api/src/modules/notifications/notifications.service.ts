@@ -115,9 +115,38 @@ export class NotificationsService {
       data: { readAt: new Date() },
     });
 
+    // Broadcast a read receipt to the channel so others can render "seen".
+    this.realtime.toChannel(channelId, ServerEvents.ChannelRead, {
+      channelId,
+      userId,
+      lastReadMessageId: markerMessageId,
+      lastReadAt: markerAt.toISOString(),
+    });
+
     const state = await this.computeState(channelId, userId);
     this.emitState(userId, state);
     return state;
+  }
+
+  /** Read pointers for every member of a channel — powers read receipts. */
+  async listReceipts(channelId: string, userId: string) {
+    await this.requireMembership(channelId, userId);
+    const members = await this.prisma.channelMember.findMany({
+      where: { channelId },
+      select: {
+        userId: true,
+        lastReadMessageId: true,
+        lastReadAt: true,
+        user: { select: { displayName: true, avatarUrl: true } },
+      },
+    });
+    return members.map((m) => ({
+      userId: m.userId,
+      displayName: m.user.displayName,
+      avatarUrl: m.user.avatarUrl,
+      lastReadMessageId: m.lastReadMessageId,
+      lastReadAt: m.lastReadAt?.toISOString() ?? null,
+    }));
   }
 
   /**

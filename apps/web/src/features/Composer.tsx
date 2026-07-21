@@ -302,6 +302,8 @@ export default function Composer({
       isPinned: false,
       reactions: [],
       attachments,
+      isSaved: false,
+      forwardedFrom: null,
       createdAt: now,
       updatedAt: now,
     });

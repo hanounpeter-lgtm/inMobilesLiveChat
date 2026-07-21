@@ -107,6 +107,25 @@ export function markThreadMessageDeleted(queryClient: QueryClient, messageId: st
   });
 }
 
+/** Patch arbitrary fields on a message by id in a channel's cache (e.g. isSaved). */
+export function patchMessageFields(
+  queryClient: QueryClient,
+  channelId: string,
+  messageId: string,
+  patch: Partial<MessageDto>,
+) {
+  queryClient.setQueryData<MessagesData>(messagesKey(channelId), (data) => {
+    if (!data) return data;
+    return {
+      ...data,
+      pages: data.pages.map((page) => ({
+        ...page,
+        messages: page.messages.map((m) => (m.id === messageId ? { ...m, ...patch } : m)),
+      })),
+    };
+  });
+}
+
 export function removeMessage(queryClient: QueryClient, channelId: string, messageId: string) {
   queryClient.setQueryData<MessagesData>(messagesKey(channelId), (data) => {
     if (!data) return data;

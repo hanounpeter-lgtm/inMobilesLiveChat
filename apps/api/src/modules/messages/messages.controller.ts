@@ -14,7 +14,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { EditMessageRequest, SendMessageRequest, ToggleReactionRequest } from '@inmobiles/shared-types';
+import {
+  EditMessageRequest,
+  ForwardMessageRequest,
+  SendMessageRequest,
+  ToggleReactionRequest,
+} from '@inmobiles/shared-types';
 import { CurrentUserId } from '../../common/current-user.decorator';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -64,6 +69,30 @@ export class MessagesController {
     @Param('channelId', ParseUUIDPipe) channelId: string,
   ) {
     return { messages: await this.messages.listPins(channelId, userId) };
+  }
+
+  @Get('me/saved')
+  async saved(@CurrentUserId() userId: string) {
+    return { messages: await this.messages.listSaved(userId) };
+  }
+
+  @Post('messages/:id/forward')
+  forward(
+    @CurrentUserId() userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodValidationPipe(ForwardMessageRequest)) body: ForwardMessageRequest,
+  ) {
+    return this.messages.forward(id, userId, body.channelId);
+  }
+
+  @Post('messages/:id/save')
+  save(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.messages.saveMessage(id, userId);
+  }
+
+  @Delete('messages/:id/save')
+  unsave(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.messages.unsaveMessage(id, userId);
   }
 
   @Post('messages/:id/reactions')

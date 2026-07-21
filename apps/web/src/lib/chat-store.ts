@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { JoinCallResponse } from '@inmobiles/shared-types';
+import type { JoinCallResponse, MessageDto } from '@inmobiles/shared-types';
 
 interface TypingUser {
   id: string;
@@ -22,6 +22,9 @@ interface ChatState {
   /** Files dropped onto the message pane, consumed by the composer. */
   composerFiles: File[] | null;
   setComposerFiles: (files: File[] | null) => void;
+  /** Message queued for forwarding — AppShell renders the picker when set. */
+  forwardMessage: MessageDto | null;
+  setForwardMessage: (message: MessageDto | null) => void;
   typingByChannel: Record<string, TypingUser[]>;
   onlineUserIds: Set<string>;
   setActiveChannel: (id: string | null) => void;
@@ -42,6 +45,8 @@ export const useChatStore = create<ChatState>((set) => ({
   setComposerInsert: (text) => set({ composerInsert: text }),
   composerFiles: null,
   setComposerFiles: (files) => set({ composerFiles: files }),
+  forwardMessage: null,
+  setForwardMessage: (message) => set({ forwardMessage: message }),
   typingByChannel: {},
   onlineUserIds: new Set(),
 

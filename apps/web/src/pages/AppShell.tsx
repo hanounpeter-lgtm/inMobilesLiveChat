@@ -3,7 +3,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CallEndedPayload,
   CallStartedPayload,
+  ChannelReadPayload,
   ChannelRemovedPayload,
+  ReadReceiptDto,
   ChannelSummary,
   ChannelUpdatedPayload,
   MessageDeletedPayload,
@@ -28,11 +30,18 @@ import {
   patchThreadMessage,
   markThreadMessageDeleted,
 } from '../lib/message-cache';
+import {
+  ensureNotificationPermission,
+  showDesktopNotification,
+  setTabBadge,
+} from '../lib/desktop-notify';
+import type { NotificationNewPayload } from '@inmobiles/shared-types';
 import Sidebar from '../features/Sidebar';
 import MessagePane from '../features/MessagePane';
 import CallOverlay from '../features/CallOverlay';
 import ChannelDetailsPanel from '../features/ChannelDetailsPanel';
 import ThreadPanel from '../features/ThreadPanel';
+import ForwardModal from '../features/ForwardModal';
 
 export default function AppShell() {
   const queryClient = useQueryClient();
@@ -161,6 +170,25 @@ export default function AppShell() {
     const onCallEnded = ({ channelId }: CallEndedPayload) =>
       queryClient.setQueryData(['call', channelId], { call: null });
     const onUnreadUpdate = (state: UnreadState) => applyUnreadUpdate(queryClient, state);
+    const onChannelRead = ({ channelId, userId, lastReadMessageId, lastReadAt }: ChannelReadPayload) => {
+      queryClient.setQueryData<{ receipts: ReadReceiptDto[] }>(['reads', channelId], (data) => {
+        if (!data) return data;
+        const others = data.receipts.filter((r) => r.userId !== userId);
+        const prev = data.receipts.find((r) => r.userId === userId);
+        return {
+          receipts: [
+            ...others,
+            {
+              userId,
+              displayName: prev?.displayName ?? '',
+              avatarUrl: prev?.avatarUrl ?? null,
+              lastReadMessageId,
+              lastReadAt,
+            },
+          ],
+        };
+      });
+    };
     const onTimeclockUpdate = () =>
       queryClient.invalidateQueries({ queryKey: ['timeclock'] });
     const onUserUpdated = () => {
@@ -171,8 +199,14 @@ export default function AppShell() {
       queryClient.invalidateQueries({ queryKey: ['messages'] });
       queryClient.invalidateQueries({ queryKey: ['thread'] });
     };
-    const onNotificationNew = () =>
+    const onNotificationNew = ({ notification }: NotificationNewPayload) => {
       queryClient.invalidateQueries({ queryKey: ['activity'] });
+      const who = notification.actor?.displayName ?? 'Someone';
+      const title = notification.type === 'mention' ? `${who} mentioned you` : `Message from ${who}`;
+      showDesktopNotification(title, notification.snippet || '', () =>
+        setActiveChannel(notification.channelId),
+      );
+    };
     const onCallRecording = (payload: { channelId: string; isRecording: boolean }) =>
       queryClient.setQueryData<{ call: { isRecording: boolean } | null }>(
         ['call', payload.channelId],
@@ -195,6 +229,7 @@ export default function AppShell() {
     socket.on(ServerEvents.CallEnded, onCallEnded);
     socket.on(ServerEvents.CallRecording, onCallRecording);
     socket.on(ServerEvents.UnreadUpdate, onUnreadUpdate);
+    socket.on(ServerEvents.ChannelRead, onChannelRead);
     socket.on(ServerEvents.UserUpdated, onUserUpdated);
     socket.on(ServerEvents.TimeclockUpdate, onTimeclockUpdate);
     socket.on(ServerEvents.NotificationNew, onNotificationNew);
@@ -224,6 +259,7 @@ export default function AppShell() {
       socket.off(ServerEvents.CallEnded, onCallEnded);
       socket.off(ServerEvents.CallRecording, onCallRecording);
       socket.off(ServerEvents.UnreadUpdate, onUnreadUpdate);
+      socket.off(ServerEvents.ChannelRead, onChannelRead);
       socket.off(ServerEvents.UserUpdated, onUserUpdated);
       socket.off(ServerEvents.TimeclockUpdate, onTimeclockUpdate);
       socket.off(ServerEvents.NotificationNew, onNotificationNew);
@@ -231,10 +267,23 @@ export default function AppShell() {
     };
   }, [queryClient, setTyping, setPresence, setActiveChannel, user?.id]);
 
+  // Ask for desktop-notification permission once, after sign-in.
+  useEffect(() => {
+    ensureNotificationPermission();
+  }, []);
+
+  // Reflect unread mentions/DMs in the browser tab title.
+  const { unreads } = useUnreads();
+  const totalMentions = Object.values(unreads).reduce((sum, u) => sum + u.mentionCount, 0);
+  useEffect(() => {
+    setTabBadge(totalMentions);
+  }, [totalMentions]);
+
   const activeChannel = channels.find((c) => c.id === activeChannelId) ?? null;
   const currentCall = useChatStore((s) => s.currentCall);
   const detailsPanelOpen = useChatStore((s) => s.detailsPanelOpen);
   const threadOpenFor = useChatStore((s) => s.threadOpenFor);
+  const forwardMessage = useChatStore((s) => s.forwardMessage);
 
   return (
     <div className="app-shell">
@@ -253,6 +302,7 @@ export default function AppShell() {
         <ChannelDetailsPanel channel={activeChannel} />
       )}
       {currentCall && <CallOverlay key={currentCall.call.id} join={currentCall} />}
+      {forwardMessage && <ForwardModal message={forwardMessage} />}
     </div>
   );
 }

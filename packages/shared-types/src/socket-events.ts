@@ -11,6 +11,7 @@ export const ServerEvents = {
   TypingUpdate: 'typing:update',
   PresenceUpdate: 'presence:update',
   UnreadUpdate: 'unread:update',
+  ChannelRead: 'channel:read',
   NotificationNew: 'notification:new',
   ChannelCreated: 'channel:created',
   ChannelUpdated: 'channel:updated',

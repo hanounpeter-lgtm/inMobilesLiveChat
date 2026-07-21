@@ -10,6 +10,7 @@ import ActivityModal from './ActivityModal';
 import SearchModal from './SearchModal';
 import ProfileModal from './ProfileModal';
 import DirectoryModal from './DirectoryModal';
+import SavedMessagesModal from './SavedMessagesModal';
 import { TimeclockWidget } from './Timeclock';
 import { useUnreads } from '../lib/unreads';
 import {
@@ -18,6 +19,7 @@ import {
   IconLogOut,
   IconPlus,
   IconSearch,
+  IconStar,
   IconUserPlus,
   IconUsers,
 } from '../components/icons';
@@ -49,6 +51,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
   const [showSearch, setShowSearch] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showDirectory, setShowDirectory] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
 
   // Ctrl/Cmd+K opens search from anywhere.
   useEffect(() => {
@@ -166,6 +169,12 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
             </span>
             <span className="channel-label">Directory</span>
           </button>
+          <button className="channel-item" onClick={() => setShowSaved(true)}>
+            <span className="channel-hash">
+              <IconStar size={14} />
+            </span>
+            <span className="channel-label">Saved</span>
+          </button>
         </div>
         {starred.length > 0 && (
           <div className="sidebar-section">
@@ -242,6 +251,7 @@ export default function Sidebar({ channels }: { channels: ChannelSummary[] }) {
       {showSearch && <SearchModal onClose={() => setShowSearch(false)} />}
       {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
       {showDirectory && <DirectoryModal onClose={() => setShowDirectory(false)} />}
+      {showSaved && <SavedMessagesModal onClose={() => setShowSaved(false)} />}
     </aside>
   );
 }

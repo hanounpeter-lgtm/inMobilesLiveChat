@@ -2708,6 +2708,103 @@ button:active:not([disabled]) {
   flex-shrink: 0;
 }
 
+/* ---------- Forwarded label ---------- */
+.forwarded-label {
+  font-size: 11.5px;
+  font-style: italic;
+  margin-bottom: 2px;
+}
+
+/* ---------- Read receipts ---------- */
+.read-receipts {
+  display: flex;
+  gap: 2px;
+  padding: 2px 0 4px 52px;
+  flex-wrap: wrap;
+}
+
+.receipt-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--bg);
+}
+
+.receipt-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+/* ---------- Forward + Saved modals ---------- */
+.forward-preview {
+  font-size: 13px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border-left: 3px solid var(--accent);
+  background: var(--bg-hover);
+  border-radius: 4px;
+  max-height: 60px;
+  overflow: hidden;
+}
+
+.forward-target {
+  justify-content: space-between;
+}
+
+.forward-ok {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.saved-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.saved-row:hover {
+  background: var(--bg-hover);
+}
+
+.saved-jump {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+.saved-author {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.saved-content {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saved-remove {
+  flex-shrink: 0;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 720px) {
   .sidebar {

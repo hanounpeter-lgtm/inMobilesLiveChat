@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { FileUrlResponse, MessageDto } from '@inmobiles/shared-types';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth-store';
 import { useChatStore } from '../lib/chat-store';
+import { patchMessageFields } from '../lib/message-cache';
 import { parseSticker } from './stickers';
 
 const GIF_RE = /^!\[GIF\]\((.+)\)$/;
@@ -26,6 +28,8 @@ export default function MessageContextMenu({
 }) {
   const user = useAuth((s) => s.user);
   const setComposerInsert = useChatStore((s) => s.setComposerInsert);
+  const setForwardMessage = useChatStore((s) => s.setForwardMessage);
+  const queryClient = useQueryClient();
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ x: menu.x, y: menu.y });
   const [copied, setCopied] = useState(false);
@@ -104,6 +108,19 @@ export default function MessageContextMenu({
     void api(`/messages/${message.id}/pin`, { method: 'POST' }).catch(() => undefined);
   };
 
+  const toggleSave = () => {
+    onClose();
+    const next = !message.isSaved;
+    patchMessageFields(queryClient, message.channelId, message.id, { isSaved: next });
+    void api(`/messages/${message.id}/save`, { method: next ? 'POST' : 'DELETE' })
+      .catch(() => patchMessageFields(queryClient, message.channelId, message.id, { isSaved: !next }));
+  };
+
+  const forward = () => {
+    onClose();
+    setForwardMessage(message);
+  };
+
   const download = async () => {
     onClose();
     if (!audioMatch) return;
@@ -153,6 +170,10 @@ export default function MessageContextMenu({
         </button>
       )}
       {audioMatch && <button onClick={() => void download()}>Download audio</button>}
+      {!message.isDeleted && <button onClick={forward}>Forward…</button>}
+      {!message.isDeleted && (
+        <button onClick={toggleSave}>{message.isSaved ? 'Remove from saved' : 'Save message'}</button>
+      )}
       {!message.isDeleted && (
         <button onClick={togglePin}>{message.isPinned ? 'Unpin message' : 'Pin message'}</button>
       )}

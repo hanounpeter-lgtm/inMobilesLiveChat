@@ -215,11 +215,38 @@ export const MessageDto = z.object({
   isPinned: z.boolean(),
   reactions: z.array(ReactionGroup),
   attachments: z.array(MessageAttachmentDto),
+  isSaved: z.boolean(),
+  forwardedFrom: z
+    .object({ authorDisplayName: z.string(), channelName: z.string().nullable() })
+    .nullable(),
   lastReplyAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
 export type MessageDto = z.infer<typeof MessageDto>;
+
+// ---------- Forward / Saved / Read receipts ----------
+export const ForwardMessageRequest = z.object({
+  channelId: z.string().uuid(),
+});
+export type ForwardMessageRequest = z.infer<typeof ForwardMessageRequest>;
+
+export const ReadReceiptDto = z.object({
+  userId: z.string().uuid(),
+  displayName: z.string(),
+  avatarUrl: z.string().nullable(),
+  lastReadMessageId: z.string().uuid().nullable(),
+  lastReadAt: z.string().datetime().nullable(),
+});
+export type ReadReceiptDto = z.infer<typeof ReadReceiptDto>;
+
+export const ChannelReadPayload = z.object({
+  channelId: z.string().uuid(),
+  userId: z.string().uuid(),
+  lastReadMessageId: z.string().uuid().nullable(),
+  lastReadAt: z.string().datetime().nullable(),
+});
+export type ChannelReadPayload = z.infer<typeof ChannelReadPayload>;
 
 export const ThreadReplyPayload = z.object({
   parentMessageId: z.string().uuid(),

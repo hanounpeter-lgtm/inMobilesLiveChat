@@ -18,12 +18,19 @@ const messageInclude = {
     select: { id: true, filename: true, mimeType: true, sizeBytes: true },
     where: { status: 'ready' },
   },
+  forwardedFrom: {
+    select: {
+      author: { select: { displayName: true } },
+      channel: { select: { name: true } },
+    },
+  },
 } satisfies Prisma.MessageInclude;
 
 type MessageHydrated = Message & {
   author: Pick<User, 'id' | 'displayName' | 'avatarUrl'>;
   reactions: { emoji: string; userId: string }[];
   attachments: { id: string; filename: string; mimeType: string; sizeBytes: bigint }[];
+  forwardedFrom: { author: { displayName: string }; channel: { name: string | null } } | null;
 };
 
 const encodeCursor = (m: Message) =>
@@ -48,7 +55,7 @@ export class MessagesService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  private toDto(m: MessageHydrated): MessageDto {
+  private toDto(m: MessageHydrated, isSaved = false): MessageDto {
     const byEmoji = new Map<string, string[]>();
     for (const r of m.reactions) {
       const list = byEmoji.get(r.emoji) ?? [];
@@ -80,10 +87,28 @@ export class MessagesService {
             sizeBytes: Number(a.sizeBytes),
             isImage: a.mimeType.startsWith('image/'),
           })),
+      isSaved,
+      forwardedFrom: m.forwardedFrom
+        ? {
+            authorDisplayName: m.forwardedFrom.author.displayName,
+            channelName: m.forwardedFrom.channel.name,
+          }
+        : null,
       lastReplyAt: m.lastReplyAt?.toISOString() ?? null,
       createdAt: m.createdAt.toISOString(),
       updatedAt: m.updatedAt.toISOString(),
     };
+  }
+
+  /** Mark which of these messages the viewer has saved (one batched query). */
+  private async withSaved(dtos: MessageDto[], userId: string): Promise<MessageDto[]> {
+    if (dtos.length === 0) return dtos;
+    const saved = await this.prisma.savedMessage.findMany({
+      where: { userId, messageId: { in: dtos.map((d) => d.id) } },
+      select: { messageId: true },
+    });
+    const set = new Set(saved.map((s) => s.messageId));
+    return dtos.map((d) => (set.has(d.id) ? { ...d, isSaved: true } : d));
   }
 
   private async hydrate(messageId: string): Promise<MessageHydrated> {
@@ -257,8 +282,12 @@ export class MessagesService {
 
     const hasMore = rows.length > PAGE_SIZE;
     const page = rows.slice(0, PAGE_SIZE);
+    const messages = await this.withSaved(
+      page.map((m) => this.toDto(m)).reverse(),
+      userId,
+    );
     return {
-      messages: page.map((m) => this.toDto(m)).reverse(),
+      messages,
       nextCursor: hasMore ? encodeCursor(page[page.length - 1]) : null,
     };
   }
@@ -278,7 +307,11 @@ export class MessagesService {
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       include: messageInclude,
     });
-    return { parent: this.toDto(parent), messages: rows.map((m) => this.toDto(m)) };
+    const [parentDto] = await this.withSaved([this.toDto(parent)], userId);
+    return {
+      parent: parentDto,
+      messages: await this.withSaved(rows.map((m) => this.toDto(m)), userId),
+    };
   }
 
   async listPins(channelId: string, userId: string): Promise<MessageDto[]> {
@@ -289,7 +322,88 @@ export class MessagesService {
       take: 100,
       include: messageInclude,
     });
-    return rows.map((m) => this.toDto(m));
+    return this.withSaved(rows.map((m) => this.toDto(m)), userId);
+  }
+
+  // ---------- Forward ----------
+
+  async forward(messageId: string, userId: string, targetChannelId: string): Promise<MessageDto> {
+    const source = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      include: { attachments: { where: { status: 'ready' } } },
+    });
+    if (!source || source.deletedAt) throw new NotFoundException('Message not found');
+    await this.channels.requireMembership(source.channelId, userId);
+    await this.channels.requirePostable(targetChannelId, userId, false);
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const msg = await tx.message.create({
+        data: {
+          channelId: targetChannelId,
+          userId,
+          content: source.content,
+          clientMsgId: randomUUID(),
+          forwardedFromId: source.id,
+        },
+      });
+      // Duplicate attachment rows so the forwarded copy carries the same files.
+      for (const a of source.attachments) {
+        await tx.attachment.create({
+          data: {
+            messageId: msg.id,
+            channelId: targetChannelId,
+            uploaderId: userId,
+            workspaceId: a.workspaceId,
+            s3Key: a.s3Key,
+            filename: a.filename,
+            mimeType: a.mimeType,
+            sizeBytes: a.sizeBytes,
+            width: a.width,
+            height: a.height,
+            thumbS3Key: a.thumbS3Key,
+            status: 'ready',
+          },
+        });
+      }
+      await tx.channel.update({
+        where: { id: targetChannelId },
+        data: { lastMessageAt: msg.createdAt },
+      });
+      return msg;
+    });
+
+    const dto = this.toDto(await this.hydrate(created.id));
+    this.realtime.toChannel(targetChannelId, ServerEvents.MessageNew, dto);
+    return dto;
+  }
+
+  // ---------- Saved messages ----------
+
+  async saveMessage(messageId: string, userId: string): Promise<{ saved: boolean }> {
+    const message = await this.prisma.message.findUnique({ where: { id: messageId } });
+    if (!message || message.deletedAt) throw new NotFoundException('Message not found');
+    await this.channels.requireMembership(message.channelId, userId);
+    await this.prisma.savedMessage.upsert({
+      where: { userId_messageId: { userId, messageId } },
+      update: {},
+      create: { userId, messageId },
+    });
+    return { saved: true };
+  }
+
+  async unsaveMessage(messageId: string, userId: string): Promise<{ saved: boolean }> {
+    await this.prisma.savedMessage.deleteMany({ where: { userId, messageId } });
+    return { saved: false };
+  }
+
+  async listSaved(userId: string): Promise<MessageDto[]> {
+    const rows = await this.prisma.savedMessage.findMany({
+      where: { userId, message: { deletedAt: null } },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      include: { message: { include: messageInclude } },
+    });
+    return rows.map((r) => this.toDto(r.message, true));
   }
 
   async edit(messageId: string, userId: string, content: string): Promise<MessageDto> {

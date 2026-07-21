@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   ChannelSummary,
   JoinCallResponse,
   MessageDto,
   MessagePage,
+  ReadReceiptDto,
 } from '@inmobiles/shared-types';
 import { api } from '../lib/api';
 import { useChatStore } from '../lib/chat-store';
@@ -73,6 +74,20 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
   const canManage = canManageChannel(channel, user);
   const canPost =
     !channel.isArchived && (channel.postingPolicy !== 'admins_only' || canManage);
+
+  // Read receipts: map each member's read pointer to the message they read up to.
+  const { data: readsData } = useQuery({
+    queryKey: ['reads', channel.id],
+    queryFn: () => api<{ receipts: ReadReceiptDto[] }>(`/channels/${channel.id}/reads`),
+  });
+  const readersByMessage = useMemo(() => {
+    const map: Record<string, ReadReceiptDto[]> = {};
+    for (const r of readsData?.receipts ?? []) {
+      if (r.userId === user?.id || !r.lastReadMessageId) continue;
+      (map[r.lastReadMessageId] ??= []).push(r);
+    }
+    return map;
+  }, [readsData, user?.id]);
 
   const toggleStar = async () => {
     const updated = await api<ChannelSummary>(`/channels/${channel.id}/my-settings`, {
@@ -271,6 +286,29 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
                   onEditDone={() => setEditingId(null)}
                 />
               )}
+              {readersByMessage[m.id]?.length ? (
+                <div className="read-receipts" title="Seen by">
+                  {readersByMessage[m.id].slice(0, 10).map((r) =>
+                    r.avatarUrl ? (
+                      <img
+                        key={r.userId}
+                        className="receipt-avatar"
+                        src={r.avatarUrl}
+                        title={`Seen by ${r.displayName}`}
+                        alt=""
+                      />
+                    ) : (
+                      <span
+                        key={r.userId}
+                        className="receipt-avatar receipt-letter"
+                        title={`Seen by ${r.displayName}`}
+                      >
+                        {r.displayName.slice(0, 1).toUpperCase()}
+                      </span>
+                    ),
+                  )}
+                </div>
+              ) : null}
             </div>
           );
         })}

@@ -220,6 +220,12 @@ export default function MessageItem({
             <IconPin size={12} />
           </span>
         )}
+        {message.forwardedFrom && !message.isDeleted && (
+          <div className="forwarded-label muted">
+            ↱ Forwarded from {message.forwardedFrom.authorDisplayName}
+            {message.forwardedFrom.channelName ? ` in #${message.forwardedFrom.channelName}` : ''}
+          </div>
+        )}
         {message.isDeleted ? (
           <div className="deleted muted">This message was deleted</div>
         ) : isEditing && onEditDone ? (

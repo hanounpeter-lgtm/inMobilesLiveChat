@@ -28,4 +28,9 @@ export class NotificationsController {
   async list(@CurrentUserId() userId: string) {
     return { notifications: await this.notifications.listMine(userId) };
   }
+
+  @Get('channels/:id/reads')
+  async reads(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) channelId: string) {
+    return { receipts: await this.notifications.listReceipts(channelId, userId) };
+  }
 }
