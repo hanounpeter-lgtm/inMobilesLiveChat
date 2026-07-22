@@ -22,6 +22,10 @@ import {
   IconTarget,
   IconUsers,
   IconX,
+  IconSearch,
+  IconStar,
+  IconUserPlus,
+  IconHash,
 } from '../components/icons';
 
 const FOCUS_KEY = 'inchat-focus-until';
@@ -112,6 +116,29 @@ export default function HomeDashboard({ channels }: { channels: ChannelSummary[]
   const delTask = async (t: TaskDto) => {
     await api(`/tasks/${t.id}`, { method: 'DELETE' }).catch(() => undefined);
     void refreshTasks();
+  };
+
+  const joinByCode = async () => {
+    const code = window.prompt('Enter meeting code:')?.trim();
+    if (!code) return;
+    try {
+      const meeting = await api<any>(`/meetings/by-code/${encodeURIComponent(code)}`);
+      setActiveChannel(meeting.channelId);
+      const join = await api<any>(`/channels/${meeting.channelId}/call`, {
+        method: 'POST',
+        body: JSON.stringify({ type: meeting.type }),
+      });
+      useChatStore.getState().setCurrentCall(join);
+    } catch {
+      window.alert('No meeting found for that code.');
+    }
+  };
+
+  const focusMode = async () => {
+    const raw = window.prompt('Focus for how many minutes?', '30');
+    const mins = Number(raw);
+    if (!mins || mins <= 0) return;
+    startFocus(mins);
   };
 
   const nameById = new Map(channels.map((c) => [c.id, c]));
@@ -308,19 +335,27 @@ export default function HomeDashboard({ channels }: { channels: ChannelSummary[]
           )}
         </div>
 
-        {/* SHORTCUTS */}
-        <div className="bento-tile span-2">
-          <div className="tile-label">Shortcuts</div>
-          <div className="home-tiles">
+        {/* APPS */}
+        <div className="bento-tile span-4" style={{ marginTop: '4px' }}>
+          <div className="tile-label">Apps & Tools</div>
+          <div className="premium-apps-grid">
             {[
-              { icon: <IconUsers size={18} />, label: 'Directory', fn: () => openModal('directory') },
-              { icon: <IconFile size={18} />, label: 'Files', fn: () => openModal('files') },
-              { icon: <IconMegaphone size={18} />, label: 'Broadcast', fn: () => openModal('broadcast') },
-              { icon: <IconCalendar size={18} />, label: 'Calendar', fn: () => openModal('calendar') },
+              { icon: <IconSearch size={22} />, label: 'Search', fn: () => openModal('search') },
+              { icon: <IconAt size={22} />, label: 'Activity', fn: () => openModal('activity') },
+              { icon: <IconUsers size={22} />, label: 'Directory', fn: () => openModal('directory') },
+              { icon: <IconStar size={22} />, label: 'Saved', fn: () => openModal('saved') },
+              { icon: <IconUserPlus size={22} />, label: 'Invites', fn: () => openModal('invites') },
+              { icon: <IconCheck size={22} />, label: 'Tasks', fn: () => openModal('tasks') },
+              { icon: <IconCalendar size={22} />, label: 'Calendar', fn: () => openModal('calendar') },
+              { icon: <IconFile size={22} />, label: 'Files', fn: () => openModal('files') },
+              { icon: <IconMegaphone size={22} />, label: 'Broadcast', fn: () => openModal('broadcast') },
+              { icon: <IconHash size={22} />, label: 'Join code', fn: () => void joinByCode() },
+              { icon: <IconTarget size={22} />, label: 'Focus', fn: () => void focusMode() },
+              ...(isAdmin ? [{ icon: <IconChart size={22} />, label: 'Admin', fn: () => openModal('admin') }] : []),
             ].map((s) => (
-              <button key={s.label} className="home-tile" onClick={s.fn}>
-                {s.icon}
-                <span>{s.label}</span>
+              <button key={s.label} className="premium-app-card" onClick={s.fn} title={s.label}>
+                <div className="premium-app-icon">{s.icon}</div>
+                <span className="premium-app-label">{s.label}</span>
               </button>
             ))}
           </div>
