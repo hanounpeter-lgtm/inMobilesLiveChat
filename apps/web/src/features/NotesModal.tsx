@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ChannelNoteDto } from '@inmobiles/shared-types';
 import { api } from '../lib/api';
 
@@ -13,9 +13,9 @@ export default function NotesModal({
   channelName: string;
   onClose: () => void;
 }) {
+  const queryClient = useQueryClient();
   const [content, setContent] = useState('');
   const [loaded, setLoaded] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -37,13 +37,16 @@ export default function NotesModal({
 
   const save = async () => {
     setBusy(true);
-    await api(`/channels/${channelId}/note`, {
-      method: 'PATCH',
-      body: JSON.stringify({ content }),
-    }).catch(() => undefined);
-    setBusy(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
+    try {
+      const updated = await api<ChannelNoteDto>(`/channels/${channelId}/note`, {
+        method: 'PATCH',
+        body: JSON.stringify({ content }),
+      });
+      queryClient.setQueryData(['note', channelId], updated);
+      onClose();
+    } catch {
+      setBusy(false);
+    }
   };
 
   return (
@@ -64,7 +67,7 @@ export default function NotesModal({
             Close
           </button>
           <button className="btn-primary" disabled={busy} onClick={() => void save()}>
-            {saved ? 'Saved ✓' : busy ? 'Saving…' : 'Save'}
+            {busy ? 'Saving…' : 'Save'}
           </button>
         </div>
       </div>
