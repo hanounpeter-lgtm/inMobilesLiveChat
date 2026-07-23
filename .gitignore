@@ -9,3 +9,7 @@ apps/api/prisma/migrations/**/migration_lock.toml.bak
 minio-data/
 # Downloaded by scripts/download-stickers.cjs (pnpm stickers) — 27MB of GIFs
 apps/web/public/stickers/
+# Locally installed agent skills (npx skills add)
+.agents/
+.claude/
+skills-lock.json
