@@ -8,16 +8,16 @@ const prisma = new PrismaClient();
 const PASSWORD = 'inmobiles123';
 
 const USERS = [
-  { email: 'admin@inmobiles.com', displayName: 'Dani Bitar', role: 'owner' as const },
-  { email: 'sara@inmobiles.com', displayName: 'Sara Khoury', role: 'admin' as const },
-  { email: 'omar@inmobiles.com', displayName: 'Omar Haddad', role: 'member' as const },
-  { email: 'lina@inmobiles.com', displayName: 'Lina Nassar', role: 'member' as const },
-  { email: 'maya@inmobiles.com', displayName: 'Maya Aoun', role: 'member' as const },
-  { email: 'karim@inmobiles.com', displayName: 'Karim Saab', role: 'member' as const },
-  { email: 'nour@inmobiles.com', displayName: 'Nour Fakhoury', role: 'member' as const },
-  { email: 'rami@inmobiles.com', displayName: 'Rami Chidiac', role: 'member' as const },
-  { email: 'jad@inmobiles.com', displayName: 'Jad Maalouf', role: 'member' as const },
-  { email: 'layla@inmobiles.com', displayName: 'Layla Harb', role: 'member' as const },
+  { email: 'admin@inmobiles.net', displayName: 'Dani Bitar', role: 'owner' as const },
+  { email: 'sara@inmobiles.net', displayName: 'Sara Khoury', role: 'admin' as const },
+  { email: 'omar@inmobiles.net', displayName: 'Omar Haddad', role: 'member' as const },
+  { email: 'lina@inmobiles.net', displayName: 'Lina Nassar', role: 'member' as const },
+  { email: 'maya@inmobiles.net', displayName: 'Maya Aoun', role: 'member' as const },
+  { email: 'karim@inmobiles.net', displayName: 'Karim Saab', role: 'member' as const },
+  { email: 'nour@inmobiles.net', displayName: 'Nour Fakhoury', role: 'member' as const },
+  { email: 'rami@inmobiles.net', displayName: 'Rami Chidiac', role: 'member' as const },
+  { email: 'jad@inmobiles.net', displayName: 'Jad Maalouf', role: 'member' as const },
+  { email: 'layla@inmobiles.net', displayName: 'Layla Harb', role: 'member' as const },
 ];
 
 // [userIndex, content] — index into USERS above.

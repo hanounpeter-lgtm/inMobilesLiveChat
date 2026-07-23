@@ -14,8 +14,8 @@ export default function RegisterPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!email.toLowerCase().endsWith('@inmobiles.com')) {
-      setError('Use your @inmobiles.com email address');
+    if (!email.toLowerCase().endsWith('@inmobiles.net')) {
+      setError('Use your @inmobiles.net email address');
       return;
     }
     setBusy(true);
@@ -56,12 +56,12 @@ export default function RegisterPage() {
           />
         </label>
         <label>
-          Email <span className="muted">(must be @inmobiles.com)</span>
+          Email <span className="muted">(must be @inmobiles.net)</span>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@inmobiles.com"
+            placeholder="you@inmobiles.net"
             required
           />
         </label>

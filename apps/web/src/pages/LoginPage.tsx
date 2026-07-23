@@ -38,7 +38,7 @@ export default function LoginPage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@inmobiles.com"
+            placeholder="you@inmobiles.net"
             autoFocus
             required
           />

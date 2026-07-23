@@ -32,7 +32,7 @@ export class AuthService {
   ) {
     const days = Number(config.get('REFRESH_TOKEN_TTL_DAYS', 30));
     this.refreshTtlMs = days * 24 * 60 * 60 * 1000;
-    this.allowedDomain = (config.get<string>('ALLOWED_EMAIL_DOMAIN', 'inmobiles.com') ?? '')
+    this.allowedDomain = (config.get<string>('ALLOWED_EMAIL_DOMAIN', 'inmobiles.net') ?? '')
       .trim()
       .toLowerCase();
     this.webOrigin = config.get<string>('WEB_ORIGIN', 'http://localhost:5173') ?? '';

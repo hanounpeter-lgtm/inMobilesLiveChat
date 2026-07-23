@@ -72,12 +72,12 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml exec api pnpm db:
 ```
 
 That prints the seeded logins (all password `inmobiles123`, e.g.
-`admin@inmobiles.com`). **Change the admin password after first login**, or
+`admin@inmobiles.net`). **Change the admin password after first login**, or
 create your own admin instead:
 
 ```sh
 docker compose --env-file .env.prod -f docker-compose.prod.yml \
-  exec api pnpm user:create you@inmobiles.com "Your Name" a-strong-password owner
+  exec api pnpm user:create you@inmobiles.net "Your Name" a-strong-password owner
 ```
 
 ## 6. Open it

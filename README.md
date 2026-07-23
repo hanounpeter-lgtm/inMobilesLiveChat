@@ -23,10 +23,10 @@ Open http://localhost:5173 and sign in with a seeded account:
 
 | Email | Password | Role |
 |---|---|---|
-| admin@inmobiles.com | inmobiles123 | owner |
-| sara@inmobiles.com | inmobiles123 | admin |
-| omar@inmobiles.com | inmobiles123 | member |
-| lina@inmobiles.com | inmobiles123 | member |
+| admin@inmobiles.net | inmobiles123 | owner |
+| sara@inmobiles.net | inmobiles123 | admin |
+| omar@inmobiles.net | inmobiles123 | member |
+| lina@inmobiles.net | inmobiles123 | member |
 
 ## Browsing the database with pgAdmin
 

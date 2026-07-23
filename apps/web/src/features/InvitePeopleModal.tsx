@@ -40,7 +40,7 @@ export default function InvitePeopleModal({ onClose }: { onClose: () => void }) 
       if (res.invites.length > 0) parts.push(`${res.invites.length} invite(s) sent`);
       if (res.skipped.length > 0) parts.push(`already have accounts: ${res.skipped.join(', ')}`);
       if ((res.invalid?.length ?? 0) > 0)
-        parts.push(`not @inmobiles.com, skipped: ${res.invalid.join(', ')}`);
+        parts.push(`not @inmobiles.net, skipped: ${res.invalid.join(', ')}`);
       setNotice(parts.join(' · '));
       void queryClient.invalidateQueries({ queryKey: ['workspace-invites'] });
     },
@@ -85,7 +85,7 @@ export default function InvitePeopleModal({ onClose }: { onClose: () => void }) 
           <textarea
             value={emails}
             onChange={(e) => setEmails(e.target.value)}
-            placeholder="maria@inmobiles.com, joe@inmobiles.com"
+            placeholder="maria@inmobiles.net, joe@inmobiles.net"
             rows={2}
             autoFocus
           />

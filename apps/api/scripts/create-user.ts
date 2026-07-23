@@ -16,7 +16,7 @@ async function main() {
     console.error('Usage: pnpm user:create <email> "<Display Name>" <password> [owner|admin|member]');
     process.exit(1);
   }
-  const allowedDomain = (process.env.ALLOWED_EMAIL_DOMAIN ?? 'inmobiles.com').trim().toLowerCase();
+  const allowedDomain = (process.env.ALLOWED_EMAIL_DOMAIN ?? 'inmobiles.net').trim().toLowerCase();
   if (allowedDomain && !email.toLowerCase().endsWith(`@${allowedDomain}`)) {
     console.error(`Email must end with @${allowedDomain}`);
     process.exit(1);
