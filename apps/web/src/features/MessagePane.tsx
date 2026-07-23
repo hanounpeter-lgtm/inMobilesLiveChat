@@ -294,6 +294,8 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
         {query.isLoading && <div className="fullscreen-center muted">Loading messages…</div>}
         {messages.map((m, i) => {
           const newDay = isNewDay(messages[i - 1], m);
+          // Never show the sender's own read pointer under their own message.
+          const readers = readersByMessage[m.id]?.filter((r) => r.userId !== m.author.id);
           return (
             <div key={m.clientMsgId}>
               {newDay && (
@@ -321,9 +323,9 @@ export default function MessagePane({ channel }: { channel: ChannelSummary }) {
                   onEditDone={() => setEditingId(null)}
                 />
               )}
-              {readersByMessage[m.id]?.length ? (
+              {readers?.length ? (
                 <div className="read-receipts" title="Seen by">
-                  {readersByMessage[m.id].slice(0, 10).map((r) =>
+                  {readers.slice(0, 10).map((r) =>
                     r.avatarUrl ? (
                       <img
                         key={r.userId}
