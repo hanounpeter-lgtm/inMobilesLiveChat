@@ -2179,6 +2179,16 @@ button:active:not([disabled]) {
   background: rgb(255 59 48 / 75%);
 }
 
+.rec-icon {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff3b30;
+  vertical-align: -1px;
+  margin-right: 2px;
+}
+
 .banner-rec {
   margin-left: 10px;
   background: rgb(0 0 0 / 30%);

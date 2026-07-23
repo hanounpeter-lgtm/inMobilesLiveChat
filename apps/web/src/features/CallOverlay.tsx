@@ -110,7 +110,13 @@ export default function CallOverlay({ join }: { join: JoinCallResponse }) {
         )}
         {(!recording.active || iAmRecorder) && (
           <button className="rec-toggle" onClick={() => void toggleRecording()} disabled={busy}>
-            {iAmRecorder ? '⏹ Stop recording' : '⏺ Record'}
+            {iAmRecorder ? (
+              '⏹ Stop recording'
+            ) : (
+              <>
+                <span className="rec-icon" /> Record
+              </>
+            )}
           </button>
         )}
         <button className="rec-toggle" onClick={() => setChatOpen((v) => !v)}>
